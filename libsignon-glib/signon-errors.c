@@ -5,8 +5,10 @@
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012 Canonical Ltd.
+ * Copyright (C) 2012 Intel Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
+ * Contact: Jussi Laako <jussi.laako@linux.intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -26,7 +28,6 @@
 #include "signon-errors.h"
 #include "signon-enum-types.h"
 #include "signon-internals.h"
-#include "signoncommon.h"
 #include <gio/gio.h>
 
 /**

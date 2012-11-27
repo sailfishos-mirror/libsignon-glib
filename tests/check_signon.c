@@ -4,8 +4,10 @@
  *
  * Copyright (C) 2009-2011 Nokia Corporation.
  * Copyright (C) 2011-2012 Canonical Ltd.
+ * Copyright (C) 2012 Intel Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
+ * Contact: Jussi Laako <jussi.laako@linux.intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -484,7 +486,8 @@ START_TEST(test_auth_session_process)
                                "mech1",
                                test_auth_session_process_cb,
                                sessionData);
-    main_loop = g_main_loop_new (NULL, FALSE);
+    if(!main_loop)
+        main_loop = g_main_loop_new (NULL, FALSE);
 
 
     g_main_loop_run (main_loop);
@@ -662,11 +665,14 @@ START_TEST(test_auth_session_process_after_store)
     g_type_init();
     main_loop = g_main_loop_new (NULL, FALSE);
 
-    identity = signon_identity_new ();
+    identity = signon_identity_new (NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity),
                  "Failed to initialize the Identity.");
 
     info = signon_identity_info_new ();
+    signon_identity_info_set_owner_from_values (info, "", "");
+    signon_identity_info_access_control_list_append (info,
+        signon_security_context_new_from_values ("*", "*"));
     signon_identity_info_set_username (info, "Nice user");
 
     signon_identity_store_credentials_with_info (identity,
@@ -727,7 +733,10 @@ new_identity()
     GHashTable *methods;
     guint id = 0;
 
-    identity = signon_identity_new(NULL, NULL);
+    if (main_loop == NULL)
+        main_loop = g_main_loop_new (NULL, FALSE);
+
+    identity = signon_identity_new (NULL, NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity));
     methods = g_hash_table_new (g_str_hash, g_str_equal);
     signon_identity_store_credentials_with_args (identity,
@@ -762,19 +771,18 @@ START_TEST(test_get_existing_identity)
     g_type_init ();
 
     g_debug("%s", G_STRFUNC);
-
-    main_loop = g_main_loop_new (NULL, FALSE);
     guint id = new_identity();
 
     fail_unless (id != 0);
 
-    identity = signon_identity_new_from_db(id);
+    identity = signon_identity_new_from_db (id, NULL);
 
     fail_unless (identity != NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity),
                  "Failed to initialize the Identity.");
 
     g_timeout_add (1000, identity_registered_cb, identity);
+    main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
 
     end_test ();
@@ -786,7 +794,7 @@ START_TEST(test_get_nonexisting_identity)
     g_type_init ();
 
     g_debug("%s", G_STRFUNC);
-    identity = signon_identity_new_from_db(G_MAXINT);
+    identity = signon_identity_new_from_db (G_MAXINT, NULL);
 
     fail_unless (identity != NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity),
@@ -844,7 +852,6 @@ START_TEST(test_store_credentials_identity)
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
 
-    main_loop = g_main_loop_new (NULL, FALSE);
     gint last_id = new_identity();
 
     GHashTable *methods = create_methods_hashtable();
@@ -863,6 +870,7 @@ START_TEST(test_store_credentials_identity)
     g_hash_table_destroy (methods);
 
     g_timeout_add (1000, test_quit_main_loop_cb, idty);
+    main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
 
     g_object_unref(idty);
@@ -955,7 +963,7 @@ START_TEST(test_remove_identity)
 {
     g_type_init ();
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new();
+    SignonIdentity *idty = signon_identity_new (NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -981,6 +989,7 @@ START_TEST(test_remove_identity)
                                                  caption,
                                                  NULL,
                                                  NULL,
+                                                 NULL,
                                                  0,
                                                  store_credentials_identity_cb,
                                                  NULL);
@@ -995,7 +1004,7 @@ START_TEST(test_remove_identity)
      * */
 
     gint id = new_identity();
-    SignonIdentity *idty2 = signon_identity_new_from_db (id);
+    SignonIdentity *idty2 = signon_identity_new_from_db (id, NULL);
 
     signon_identity_remove(idty2, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
@@ -1087,6 +1096,9 @@ static SignonIdentityInfo *create_standard_info()
 {
     g_debug("%s", G_STRFUNC);
     SignonIdentityInfo *info = signon_identity_info_new ();
+    signon_identity_info_set_owner_from_values (info, "", "");
+    signon_identity_info_access_control_list_append (info,
+        signon_security_context_new_from_values ("*", "*"));
     signon_identity_info_set_username (info, "James Bond");
     signon_identity_info_set_secret (info, "007", TRUE);
     signon_identity_info_set_caption (info, "caption");
@@ -1109,7 +1121,7 @@ START_TEST(test_info_identity)
 {
     g_debug("%s", G_STRFUNC);
     g_type_init ();
-    SignonIdentity *idty = signon_identity_new();
+    SignonIdentity *idty = signon_identity_new (NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -1130,6 +1142,7 @@ START_TEST(test_info_identity)
                                                  1,
                                                  methods,
                                                  "caption",
+                                                 NULL,
                                                  NULL,
                                                  NULL,
                                                  0,
@@ -1159,7 +1172,7 @@ START_TEST(test_info_identity)
 
     gint id = signon_identity_info_get_id (info);
     fail_unless (id != 0);
-    SignonIdentity *idty2 = signon_identity_new_from_db (id);
+    SignonIdentity *idty2 = signon_identity_new_from_db (id, NULL);
 
     signon_identity_query_info (idty2, identity_info_cb, &info);
     g_main_loop_run (main_loop);
@@ -1224,7 +1237,7 @@ START_TEST(test_signout_identity)
 {
     g_debug("%s", G_STRFUNC);
     g_type_init ();
-    SignonIdentity *idty = signon_identity_new();
+    SignonIdentity *idty = signon_identity_new (NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -1241,7 +1254,7 @@ START_TEST(test_signout_identity)
     g_main_loop_run (main_loop);
 
     gint id = signon_identity_info_get_id (info);
-    SignonIdentity *idty2 = signon_identity_new_from_db (id);
+    SignonIdentity *idty2 = signon_identity_new_from_db (id, NULL);
 
     /* wait some more time to ensure that the object gets registered */
     g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
@@ -1277,8 +1290,6 @@ START_TEST(test_signout_identity)
 
     g_object_unref (idty);
     g_object_unref (idty2);
-
-    end_test ();
 }
 END_TEST
 
@@ -1286,7 +1297,7 @@ START_TEST(test_unregistered_identity)
 {
     g_type_init ();
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new();
+    SignonIdentity *idty = signon_identity_new (NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -1304,7 +1315,7 @@ START_TEST(test_unregistered_identity)
      * give the time for identity to became idle
      * */
     sleep(SIGNOND_IDLE_TIMEOUT);
-    SignonIdentity *idty2 = signon_identity_new();
+    SignonIdentity *idty2 = signon_identity_new (NULL);
 
     /*
      * give time to handle unregistered signal
@@ -1316,8 +1327,6 @@ START_TEST(test_unregistered_identity)
 
     g_object_unref (idty);
     g_object_unref (idty2);
-
-    end_test ();
 }
 END_TEST
 
@@ -1325,7 +1334,7 @@ START_TEST(test_unregistered_auth_session)
 {
     g_debug("%s", G_STRFUNC);
     g_type_init ();
-    SignonIdentity *idty = signon_identity_new();
+    SignonIdentity *idty = signon_identity_new (NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -1344,7 +1353,7 @@ START_TEST(test_unregistered_auth_session)
      * give the time for identity to became idle
      * */
     sleep(SIGNOND_IDLE_TIMEOUT);
-    SignonIdentity *idty2 = signon_identity_new();
+    SignonIdentity *idty2 = signon_identity_new (NULL);
 
     /*
      * give time to handle unregistered signal
@@ -1431,7 +1440,7 @@ START_TEST(test_regression_unref)
                                  session_data,
                                  "mech1",
                                  test_regression_unref_process_cb,
-                                 "Hi there!");
+                                 g_strdup ("Hi there!"));
     g_main_loop_run (main_loop);
 
     end_test ();

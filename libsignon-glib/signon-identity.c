@@ -5,8 +5,10 @@
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012 Canonical Ltd.
+ * Copyright (C) 2012-2013 Intel Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
+ * Contact: Jussi Laako <jussi.laako@linux.intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -45,7 +47,8 @@ G_DEFINE_TYPE (SignonIdentity, signon_identity, G_TYPE_OBJECT);
 enum
 {
     PROP_0,
-    PROP_ID
+    PROP_ID,
+    PROP_APPCTX
 };
 
 typedef enum {
@@ -76,6 +79,7 @@ struct _SignonIdentityPrivate
     gboolean updated;
 
     guint id;
+    gchar *app_ctx;
 
     guint signal_info_updated;
     guint signal_unregistered;
@@ -188,6 +192,10 @@ signon_identity_set_property (GObject *object,
     case PROP_ID:
         self->priv->id = g_value_get_uint (value);
         break;
+    case PROP_APPCTX:
+        g_free (self->priv->app_ctx);
+        self->priv->app_ctx = g_strdup (g_value_get_string (value));
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -206,6 +214,9 @@ signon_identity_get_property (GObject *object,
     {
     case PROP_ID:
         g_value_set_uint (value, self->priv->id);
+        break;
+    case PROP_APPCTX:
+        g_value_set_string (value, self->priv->app_ctx);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -230,6 +241,8 @@ signon_identity_init (SignonIdentity *identity)
     priv->removed = FALSE;
     priv->signed_out = FALSE;
     priv->updated = FALSE;
+
+    priv->app_ctx = NULL;
 }
 
 static void
@@ -264,6 +277,8 @@ signon_identity_dispose (GObject *object)
     if (priv->sessions)
         g_critical ("SignonIdentity: the list of AuthSessions MUST be empty");
 
+    g_free(priv->app_ctx);
+
     G_OBJECT_CLASS (signon_identity_parent_class)->dispose (object);
 }
 
@@ -289,9 +304,17 @@ signon_identity_class_init (SignonIdentityClass *klass)
                                G_MAXUINT,
                                0,
                                G_PARAM_READWRITE);
-
     g_object_class_install_property (object_class,
                                      PROP_ID,
+                                     pspec);
+
+    pspec = g_param_spec_string ("app_ctx",
+                                 "Application Context",
+                                 "Set/Get Application Security Context",
+                                 "",
+                                 G_PARAM_READWRITE);
+    g_object_class_install_property (object_class,
+                                     PROP_APPCTX,
                                      pspec);
 
     g_type_class_add_private (object_class, sizeof (SignonIdentityPrivate));
@@ -531,11 +554,13 @@ identity_check_remote_registration (SignonIdentity *self)
     if (priv->id != 0)
         sso_auth_service_call_get_identity (priv->auth_service_proxy,
                                             priv->id,
+                                            priv->app_ctx,
                                             priv->cancellable,
                                             identity_new_from_db_cb,
                                             self);
     else
         sso_auth_service_call_register_new_identity (priv->auth_service_proxy,
+                                                     priv->app_ctx,
                                                      priv->cancellable,
                                                      identity_new_cb,
                                                      self);
@@ -546,6 +571,7 @@ identity_check_remote_registration (SignonIdentity *self)
 /**
  * signon_identity_new_from_db:
  * @id: identity ID.
+ * @application_context: application security context, can be %NULL.
  *
  * Construct an identity object associated with an existing identity
  * record.
@@ -553,18 +579,23 @@ identity_check_remote_registration (SignonIdentity *self)
  * Returns: an instance of a #SignonIdentity.
  */
 SignonIdentity*
-signon_identity_new_from_db (guint32 id)
+signon_identity_new_from_db (guint32 id, const gchar *application_context)
 {
     SignonIdentity *identity;
     DEBUG ("%s %d: %d\n", G_STRFUNC, __LINE__, id);
     if (id == 0)
         return NULL;
 
-    identity = g_object_new (SIGNON_TYPE_IDENTITY, "id", id, NULL);
+    identity = g_object_new (SIGNON_TYPE_IDENTITY,
+                             "id", id,
+                             "app_ctx", application_context,
+                             NULL);
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
     g_return_val_if_fail (identity->priv != NULL, NULL);
 
     identity->priv->id = id;
+    identity->priv->app_ctx = (application_context) ?
+        g_strdup (application_context) : g_strdup ("");
     identity_check_remote_registration (identity);
 
     return identity;
@@ -572,18 +603,25 @@ signon_identity_new_from_db (guint32 id)
 
 /**
  * signon_identity_new:
+ * @application_context: application security context, can be %NULL.
  *
  * Construct new, empty, identity object.
  *
  * Returns: an instance of an #SignonIdentity.
  */
 SignonIdentity*
-signon_identity_new ()
+signon_identity_new (const gchar *application_context)
 {
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    SignonIdentity *identity = g_object_new (SIGNON_TYPE_IDENTITY, NULL);
+    SignonIdentity *identity = g_object_new (
+                                     SIGNON_TYPE_IDENTITY,
+                                     "app_ctx", application_context,
+                                     NULL);
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
     g_return_val_if_fail (identity->priv != NULL, NULL);
+
+    identity->priv->app_ctx = (application_context) ?
+        g_strdup (application_context) : g_strdup ("");
     identity_check_remote_registration (identity);
 
     return identity;
@@ -654,7 +692,8 @@ signon_identity_create_session(SignonIdentity *self,
         list = list->next;
     }
 
-    SignonAuthSession *session = signon_auth_session_new (priv->id,
+    SignonAuthSession *session = signon_auth_session_new (priv->proxy,
+                                                          priv->id,
                                                           method,
                                                           error);
     if (session)
@@ -737,7 +776,8 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  const GHashTable *methods,
                                                  const gchar *caption,
                                                  const gchar* const *realms,
-                                                 const gchar* const *access_control_list,
+                                                 const SignonSecurityContext *owner,
+                                                 const SignonSecurityContextList *access_control_list,
                                                  SignonIdentityType type,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data)
@@ -752,7 +792,26 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
     signon_identity_info_set_methods (info, methods);
     signon_identity_info_set_caption (info, caption);
     signon_identity_info_set_realms (info, realms);
-    signon_identity_info_set_access_control_list (info, access_control_list);
+    if (owner)
+    {
+        signon_identity_info_set_owner (info, owner);
+    }
+    else
+    {
+        signon_identity_info_set_owner_from_values (info, "", "");
+        DEBUG ("created empty owner context");
+    }
+    if (access_control_list)
+    {
+        signon_identity_info_set_access_control_list (info,
+                                                      access_control_list);
+    }
+    else
+    {
+        signon_identity_info_access_control_list_append (info,
+                            signon_security_context_new_from_values ("*", "*"));
+        DEBUG ("created wildcard access control list");
+    }
     signon_identity_info_set_identity_type (info, type);
 
     signon_identity_store_credentials_with_info (self, info, cb, user_data);
@@ -823,15 +882,6 @@ identity_store_credentials_reply (GObject *object, GAsyncResult *res,
     if (error == NULL)
     {
         g_return_if_fail (priv->identity_info == NULL);
-
-        GSList *slist = priv->sessions;
-
-        while (slist)
-        {
-            SignonAuthSession *session = SIGNON_AUTH_SESSION (priv->sessions->data);
-            signon_auth_session_set_id (session, id);
-            slist = g_slist_next (slist);
-        }
 
         g_object_set (cb_data->self, "id", id, NULL);
         cb_data->self->priv->id = id;

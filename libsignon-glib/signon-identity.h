@@ -4,8 +4,10 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
+ * Copyright (C) 2012 Intel Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Jussi Laako <jussi.laako@linux.intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -102,8 +104,9 @@ typedef SignonIdentityVoidCb SignonIdentityReferenceRemovedCb;
 
 GType signon_identity_get_type (void) G_GNUC_CONST;
 
-SignonIdentity *signon_identity_new_from_db (guint32 id);
-SignonIdentity *signon_identity_new ();
+SignonIdentity *signon_identity_new_from_db (guint32 id,
+                                             const gchar *application_context);
+SignonIdentity *signon_identity_new (const gchar *application_context);
 
 const GError *signon_identity_get_last_error (SignonIdentity *identity);
 
@@ -132,16 +135,17 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
                                                  gpointer user_data);
 
 void signon_identity_store_credentials_with_args(SignonIdentity *self,
-                                                 const gchar *username,
-                                                 const gchar *secret,
-                                                 const gboolean store_secret,
-                                                 const GHashTable *methods,
-                                                 const gchar *caption,
-                                                 const gchar* const *realms,
-                                                 const gchar* const *access_control_list,
-                                                 SignonIdentityType type,
-                                                 SignonIdentityStoreCredentialsCb cb,
-                                                 gpointer user_data);
+                        const gchar *username,
+                        const gchar *secret,
+                        const gboolean store_secret,
+                        const GHashTable *methods,
+                        const gchar *caption,
+                        const gchar* const *realms,
+                        const SignonSecurityContext *owner,
+                        const SignonSecurityContextList *access_control_list,
+                        SignonIdentityType type,
+                        SignonIdentityStoreCredentialsCb cb,
+                        gpointer user_data);
 
 /**
  * SignonIdentityVerifyCb:

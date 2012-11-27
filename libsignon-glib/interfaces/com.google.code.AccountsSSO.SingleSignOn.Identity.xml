@@ -1,0 +1,48 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="com.google.code.AccountsSSO.SingleSignOn.Identity">
+    <signal name="unregistered">
+    </signal>
+    <signal name="infoUpdated">
+      <arg type="i" direction="out"/>
+    </signal>
+    <method name="requestCredentialsUpdate">
+      <arg type="u" direction="out"/>
+      <arg name="message" type="s" direction="in"/>
+    </method>
+    <method name="getInfo">
+      <arg name="identityInfo" type="a{sv}" direction="out"/>
+    </method>
+    <method name="getAuthSession">
+      <arg name="objectPath" type="o" direction="out"/>
+      <arg name="method" type="s" direction="in"/>
+    </method>
+    <method name="verifyUser">
+      <arg type="b" direction="out"/>
+      <arg name="params" type="a{sv}" direction="in"/>
+      <annotation name="com.trolltech.QtDBus.QtTypeName.In4" value="QVariantMap"/>
+    </method>
+    <method name="verifySecret">
+      <arg type="b" direction="out"/>
+      <arg name="secret" type="s" direction="in"/>
+    </method>
+    <method name="remove">
+    </method>
+    <method name="signOut">
+      <arg type="b" direction="out"/>
+    </method>
+    <method name="store">
+      <arg type="u" direction="out"/>
+      <arg type="a{sv}" direction="in"/>
+      <annotation name="com.trolltech.QtDBus.QtTypeName.In4" value="QVariantMap"/>
+    </method>
+    <method name="addReference">
+      <arg type="i" direction="out"/>
+      <arg name="reference" type="s" direction="in"/>
+    </method>
+    <method name="removeReference">
+      <arg type="i" direction="out"/>
+      <arg name="reference" type="s" direction="in"/>
+    </method>
+  </interface>
+</node>

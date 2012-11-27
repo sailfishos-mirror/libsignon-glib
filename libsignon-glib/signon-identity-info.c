@@ -90,6 +90,8 @@ SignonIdentityInfo *
 signon_identity_info_new_from_variant (GVariant *variant)
 {
     GVariant *method_map;
+    GVariant *owner;
+    GVariant *acl;
 
     if (!variant)
         return NULL;
@@ -146,10 +148,22 @@ signon_identity_info_new_from_variant (GVariant *variant)
         }
     }
 
-    g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_ACL,
-                      "^as",
-                      &info->access_control_list);
+    if (g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_OWNER,
+                      "(ss)",
+                      &owner))
+    {
+        info->owner = signon_security_context_deconstruct_variant (owner);
+    }
+
+    if (g_variant_lookup (variant,
+                          SIGNOND_IDENTITY_INFO_ACL,
+                          "@a(ss)",
+                          &acl))
+    {
+        info->access_control_list =
+            signon_security_context_list_deconstruct_variant (acl);
+    }
 
     g_variant_lookup (variant,
                       SIGNOND_IDENTITY_INFO_TYPE,
@@ -217,13 +231,20 @@ signon_identity_info_to_variant (const SignonIdentityInfo *self)
                                                    -1));
     }
 
+    if (self->owner != NULL)
+    {
+        g_variant_builder_add (&builder, "{sv}",
+                               SIGNOND_IDENTITY_INFO_OWNER,
+                               signon_security_context_build_variant (
+                                                                  self->owner));
+    }
+
     if (self->access_control_list != NULL)
     {
         g_variant_builder_add (&builder, "{sv}",
                                SIGNOND_IDENTITY_INFO_ACL,
-                               g_variant_new_strv ((const gchar * const *)
-                                                   self->access_control_list,
-                                                   -1));
+                               signon_security_context_list_build_variant (
+                                                    self->access_control_list));
     }
 
     g_variant_builder_add (&builder, "{sv}",
@@ -250,6 +271,7 @@ SignonIdentityInfo *signon_identity_info_new ()
     info->methods = g_hash_table_new_full (g_str_hash, g_str_equal,
                                             g_free, (GDestroyNotify)g_strfreev);
     info->store_secret = FALSE;
+    info->owner = signon_security_context_new ();
 
     return info;
 }
@@ -271,7 +293,8 @@ void signon_identity_info_free (SignonIdentityInfo *info)
     g_hash_table_destroy (info->methods);
 
     g_strfreev (info->realms);
-    g_strfreev (info->access_control_list);
+    signon_security_context_free (info->owner);
+    signon_security_context_list_free (info->access_control_list);
 
     g_slice_free (SignonIdentityInfo, info);
 }
@@ -291,16 +314,23 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
 
     identity_info_set_id (info, signon_identity_info_get_id (other));
 
-    signon_identity_info_set_username (info, signon_identity_info_get_username (other));
+    signon_identity_info_set_username (info,
+        signon_identity_info_get_username (other));
 
     signon_identity_info_set_secret (info, identity_info_get_secret(other),
-                                     signon_identity_info_get_storing_secret (other));
+        signon_identity_info_get_storing_secret (other));
 
-    signon_identity_info_set_caption (info, signon_identity_info_get_caption(other));
+    signon_identity_info_set_caption (info,
+        signon_identity_info_get_caption(other));
 
-    signon_identity_info_set_methods (info, signon_identity_info_get_methods (other));
+    signon_identity_info_set_methods (info,
+        signon_identity_info_get_methods (other));
 
-    signon_identity_info_set_realms (info, signon_identity_info_get_realms (other));
+    signon_identity_info_set_realms (info,
+        signon_identity_info_get_realms (other));
+
+    signon_identity_info_set_owner (info,
+        signon_identity_info_get_owner (other));
 
     signon_identity_info_set_access_control_list (info,
         signon_identity_info_get_access_control_list (other));
@@ -397,17 +427,31 @@ const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *i
 }
 
 /**
+ * signon_identity_info_get_owner:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Get owner security context of @info.
+ *
+ * Returns: (transfer none): a security context.
+ */
+const SignonSecurityContext *signon_identity_info_get_owner (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+    return info->owner;
+}
+
+/**
  * signon_identity_info_get_access_control_list:
  * @info: the #SignonIdentityInfo.
  *
  * Get an array of ACL statements of the identity.
  *
- * Returns: (transfer none): a %NULL terminated array of ACL statements.
+ * Returns: (transfer none): a list of ACL security contexts.
  */
-const gchar* const *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
+const SignonSecurityContextList *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
-    return (const gchar* const *)info->access_control_list;
+    return info->access_control_list;
 }
 
 /**
@@ -533,21 +577,81 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info,
 }
 
 /**
- * signon_identity_info_set_access_control_list:
+ * signon_identity_info_set_owner:
  * @info: the #SignonIdentityInfo.
- * @access_control_list: a %NULL-terminated list of ACL security domains.
+ * @owner: (transfer none) a security context of owner.
  *
- * Specifies the ACL for this identity. The actual meaning of the ACL depends
- * on the security framework used by signond.
+ * Specify owner security context.
  */
-void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
-                                                   const gchar* const *access_control_list)
+void signon_identity_info_set_owner (SignonIdentityInfo *info,
+                                     const SignonSecurityContext *owner)
 {
     g_return_if_fail (info != NULL);
 
-    if (info->access_control_list) g_strfreev (info->access_control_list);
+    if (info->owner) signon_security_context_free (info->owner);
 
-    info->access_control_list = g_strdupv ((gchar **)access_control_list);
+    info->owner = signon_security_context_copy (owner);
+}
+
+/**
+ * signon_identity_info_set_owner_from_values:
+ * @info: the #SignonIdentityInfo.
+ * @system_context: owner's system context.
+ * @application_context: owner's application context.
+ *
+ * Specify owner security context.
+ */
+void signon_identity_info_set_owner_from_values (
+                                               SignonIdentityInfo *info,
+                                               const gchar *system_context,
+                                               const gchar *application_context)
+{
+    g_return_if_fail (info != NULL &&
+                      system_context != NULL &&
+                      application_context != NULL);
+
+    if (info->owner) signon_security_context_free (info->owner);
+
+    info->owner = signon_security_context_new_from_values(system_context,
+                                                          application_context);
+}
+
+/**
+ * signon_identity_info_set_access_control_list:
+ * @info: the #SignonIdentityInfo.
+ * @access_control_list: (transfer none) a list of ACL security contexts.
+ *
+ * Specifies the ACL for this identity. The actual meaning of the ACL depends
+ * on the security framework used by signond. Ownership of the list is trans
+ */
+void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
+                           const SignonSecurityContextList *access_control_list)
+{
+    g_return_if_fail (info != NULL);
+
+    if (info->access_control_list)
+        signon_security_context_list_free (info->access_control_list);
+
+    info->access_control_list =
+        signon_security_context_list_copy (access_control_list);
+}
+
+/**
+ * signon_identity_info_access_control_list_append:
+ * @info: the #SignonIdentityInfo.
+ * @security_context: (transfer full) a security context to be appended.
+ *
+ * Appends a new #SignonSecurityContext item to the access control list.
+ */
+void signon_identity_info_access_control_list_append (
+                                        SignonIdentityInfo *info,
+                                        SignonSecurityContext *security_context)
+{
+    g_return_if_fail (info != NULL);
+    g_return_if_fail (security_context != NULL);
+
+    info->access_control_list = g_list_append (info->access_control_list,
+                                               security_context);
 }
 
 /**

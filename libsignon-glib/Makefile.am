@@ -54,6 +54,8 @@ libsignon_glib_la_SOURCES = \
 	signon-utils.h \
 	signon-utils.c \
 	signon-types.h \
+	signon-security-context.h \
+	signon-security-context.c \
 	sso-auth-service.c \
 	sso-auth-service.h
 
@@ -63,6 +65,7 @@ libsignon_glib_include_HEADERS = \
 	signon-auth-session.h \
 	signon-identity-info.h \
 	signon-identity.h \
+	signon-security-context.h \
 	signon-errors.h \
 	signon-enum-types.h \
 	signon-glib.h \
@@ -76,7 +79,8 @@ libsignon_glib_headers_with_enums = \
 	signon-identity-info.h
 
 # This should come from `pkg-config --variable=interfaces_dir dbus-1`
-DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
+# default is /usr/share/dbus-1/interfaces
+DBUS_INTERFACES_DIR = interfaces
 
 sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
 	$(AM_V_GEN)gdbus-codegen \
@@ -137,7 +141,7 @@ signon-enum-types.c: Makefile $(libsignon_glib_headers_with_enums)
 
 signon-errors-enum.c: Makefile signon-errors.h
 	$(AM_V_GEN)( cd $(srcdir) && glib-mkenums \
-	    --fhead "#include \"signon-enum-types.h\"\n#include \"signon-errors.h\"\n#include \"signoncommon.h\"\n#define g_intern_static_string(s) (s)\n" \
+	    --fhead "#include \"signon-enum-types.h\"\n#include \"signon-errors.h\"\n#include \"signon-internals.h\"\n#define g_intern_static_string(s) (s)\n" \
 	    --fprod "\n/* enumerations from \"@filename@\" */" \
 	    --ftail "\n#define __SIGNON_ENUM_TYPES_C__\n" \
 	    --vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \

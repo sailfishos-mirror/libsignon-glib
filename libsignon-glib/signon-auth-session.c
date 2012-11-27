@@ -5,8 +5,10 @@
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012 Canonical Ltd.
+ * Copyright (C) 2012-2013 Intel Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
+ * Contact: Jussi Laako <jussi.laako@linux.intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -46,17 +48,22 @@
 #include "signon-utils.h"
 #include "sso-auth-service.h"
 #include "sso-auth-session-gen.h"
+#include "sso-identity-gen.h"
 
-/* SignonAuthSessionState is defined in signoncommon.h */
-#include <signoncommon.h>
 
 G_DEFINE_TYPE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT);
+
+enum
+{
+    PROP_0,
+    PROP_IDENTITY,
+    PROP_APPCTX
+};
 
 /* Signals */
 enum
 {
     STATE_CHANGED,
-
     LAST_SIGNAL
 };
 
@@ -68,10 +75,10 @@ static const gchar data_key_process[] = "signon-process";
 struct _SignonAuthSessionPrivate
 {
     SsoAuthSession *proxy;
-    SsoAuthService *auth_service_proxy;
+    SsoIdentity *identity_proxy;
     GCancellable *cancellable;
 
-    gint id;
+    guint id;
     gchar *method_name;
 
     gboolean registering;
@@ -118,7 +125,6 @@ static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy, gpointer
 
 static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
 
-static void auth_session_set_id_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
@@ -263,10 +269,45 @@ auth_session_object_quark ()
 }
 
 static void
+signon_auth_session_set_property (GObject *object,
+                                  guint property_id,
+                                  const GValue *value,
+                                  GParamSpec *pspec)
+{
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+
+    switch (property_id)
+    {
+        case PROP_IDENTITY:
+            self->priv->identity_proxy = g_value_dup_object (value);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    }
+}
+
+static void
+signon_auth_session_get_property (GObject *object,
+                                  guint property_id,
+                                  GValue *value,
+                                  GParamSpec *pspec)
+{
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+
+    switch (property_id)
+    {
+        case PROP_IDENTITY:
+            g_value_set_object (value, self->priv->identity_proxy);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    }
+}
+
+static void
 signon_auth_session_init (SignonAuthSession *self)
 {
     self->priv = SIGNON_AUTH_SESSION_GET_PRIV (self);
-    self->priv->auth_service_proxy = sso_auth_service_get_instance ();
     self->priv->cancellable = g_cancellable_new ();
 }
 
@@ -296,10 +337,10 @@ signon_auth_session_dispose (GObject *object)
         priv->proxy = NULL;
     }
 
-    if (priv->auth_service_proxy)
+    if (priv->identity_proxy)
     {
-        g_object_unref (priv->auth_service_proxy);
-        priv->auth_service_proxy = NULL;
+        g_object_unref (priv->identity_proxy);
+        priv->identity_proxy = NULL;
     }
 
     G_OBJECT_CLASS (signon_auth_session_parent_class)->dispose (object);
@@ -325,6 +366,19 @@ static void
 signon_auth_session_class_init (SignonAuthSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    GParamSpec *pspec;
+
+    object_class->set_property = signon_auth_session_set_property;
+    object_class->get_property = signon_auth_session_get_property;
+
+    pspec = g_param_spec_object ("identity",
+                                 "Identity Proxy Object",
+                                 "Identity Proxy Object construct parameter",
+                                 TYPE_SSO_IDENTITY,
+                                 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_property (object_class,
+                                     PROP_IDENTITY,
+                                     pspec);
 
     g_type_class_add_private (object_class, sizeof (SignonAuthSessionPrivate));
 
@@ -366,11 +420,17 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
  * Returns: a new #SignonAuthSession.
  */
 SignonAuthSession *
-signon_auth_session_new (gint id,
+signon_auth_session_new (gpointer identity_proxy,
+                         gint id,
                          const gchar *method_name,
                          GError **err)
 {
-    SignonAuthSession *self = SIGNON_AUTH_SESSION(g_object_new (SIGNON_TYPE_AUTH_SESSION, NULL));
+    SsoIdentity *identity = SSO_IDENTITY(identity_proxy);
+
+    SignonAuthSession *self = SIGNON_AUTH_SESSION(g_object_new (
+                                     SIGNON_TYPE_AUTH_SESSION,
+                                     "identity", identity,
+                                     NULL));
     g_return_val_if_fail (self != NULL, NULL);
 
     if (!auth_session_priv_init(self, id, method_name, err))
@@ -383,54 +443,6 @@ signon_auth_session_new (gint id,
     }
 
     return self;
-}
-
-static void
-auth_session_set_id_ready_cb (gpointer object,
-                              const GError *error,
-                              gpointer user_data)
-{
-    if (error)
-    {
-        g_warning ("%s returned error: %s", G_STRFUNC, error->message);
-        return;
-    }
-
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
-    gint id = GPOINTER_TO_INT(user_data);
-
-    GError *err = NULL;
-    sso_auth_session_call_set_id_sync (priv->proxy,
-                                       id,
-                                       priv->cancellable,
-                                       &err);
-    priv->id = id;
-
-    if (err)
-        g_warning ("%s returned error: %s", G_STRFUNC, err->message);
-
-    g_clear_error(&err);
-}
-
-void
-signon_auth_session_set_id(SignonAuthSession* self,
-                           gint id)
-{
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
-
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-    g_return_if_fail (id >= 0);
-
-    auth_session_check_remote_object(self);
-    _signon_object_call_when_ready (self,
-                                    auth_session_object_quark(),
-                                    auth_session_set_id_ready_cb,
-                                    GINT_TO_POINTER(id));
 }
 
 /**
@@ -664,17 +676,17 @@ signon_auth_session_cancel (SignonAuthSession *self)
 }
 
 static void
-auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
-                                    gpointer userdata)
+identity_get_auth_session_reply (GObject *object, GAsyncResult *res,
+                                 gpointer userdata)
 {
-    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
+    SsoIdentity *proxy = SSO_IDENTITY (object);
     gchar *object_path = NULL;
     GError *error = NULL;
 
-    sso_auth_service_call_get_auth_session_object_path_finish (proxy,
-                                                               &object_path,
-                                                               res,
-                                                               &error);
+    sso_identity_call_get_auth_session_finish (proxy,
+                                               &object_path,
+                                               res,
+                                               &error);
     SIGNON_RETURN_IF_CANCELLED (error);
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (userdata));
@@ -791,13 +803,12 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
     priv->method_name = g_strdup (method_name);
 
     priv->registering = TRUE;
-    sso_auth_service_call_get_auth_session_object_path (
-        priv->auth_service_proxy,
-        id,
-        method_name,
-        priv->cancellable,
-        auth_session_get_object_path_reply,
-        self);
+    sso_identity_call_get_auth_session (
+                                        priv->identity_proxy,
+                                        method_name,
+                                        priv->cancellable,
+                                        identity_get_auth_session_reply,
+                                        self);
     priv->busy = FALSE;
     priv->canceled = FALSE;
     return TRUE;
@@ -906,17 +917,16 @@ auth_session_check_remote_object(SignonAuthSession *self)
     if (priv->proxy != NULL)
         return;
 
-    g_return_if_fail (priv->auth_service_proxy != NULL);
+    g_return_if_fail (priv->identity_proxy != NULL);
 
     if (!priv->registering)
     {
         priv->registering = TRUE;
-        sso_auth_service_call_get_auth_session_object_path (
-            priv->auth_service_proxy,
-            priv->id,
+        sso_identity_call_get_auth_session (
+            priv->identity_proxy,
             priv->method_name,
             priv->cancellable,
-            auth_session_get_object_path_reply,
+            identity_get_auth_session_reply,
             self);
     }
 }
