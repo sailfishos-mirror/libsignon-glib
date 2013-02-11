@@ -261,7 +261,7 @@ START_TEST(test_auth_session_query_mechanisms)
     GError *err = NULL;
 
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    SignonIdentity *idty = signon_identity_new(NULL);
     fail_unless (idty != NULL, "Cannot create Iddentity object");
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
@@ -336,7 +336,7 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
     GError *err = NULL;
 
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    SignonIdentity *idty = signon_identity_new(NULL);
     fail_unless (idty != NULL, "Cannot create Iddentity object");
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
@@ -419,7 +419,7 @@ START_TEST(test_auth_session_creation)
     GError *err = NULL;
 
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    SignonIdentity *idty = signon_identity_new(NULL);
     fail_unless (idty != NULL, "Cannot create Iddentity object");
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
@@ -446,7 +446,7 @@ START_TEST(test_auth_session_process)
     GError *err = NULL;
 
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    SignonIdentity *idty = signon_identity_new(NULL);
     fail_unless (idty != NULL, "Cannot create Iddentity object");
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
@@ -548,6 +548,7 @@ test_auth_session_process_failure_cb (GObject *source_object,
 
 START_TEST(test_auth_session_process_failure)
 {
+    SignonIdentity *identity;
     SignonAuthSession *auth_session;
     GVariantBuilder builder;
     GVariant *session_data;
@@ -557,7 +558,11 @@ START_TEST(test_auth_session_process_failure)
 
     g_type_init ();
 
-    auth_session = signon_auth_session_new (0, "nonexisting-method", &error);
+    identity = signon_identity_new_from_db (0, NULL);
+    fail_unless (identity != NULL, "Cannot create Identity object");
+    auth_session = signon_auth_session_new (identity,
+                                            "nonexisting-method",
+                                            &error);
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
     fail_unless (error == NULL);
 
@@ -581,6 +586,7 @@ START_TEST(test_auth_session_process_failure)
     fail_unless (error->code == SIGNON_ERROR_METHOD_NOT_KNOWN);
 
     g_object_unref (auth_session);
+    g_object_unref (identity);
 
     end_test ();
 }
@@ -736,7 +742,7 @@ new_identity()
     if (main_loop == NULL)
         main_loop = g_main_loop_new (NULL, FALSE);
 
-    identity = signon_identity_new (NULL, NULL);
+    identity = signon_identity_new (NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity));
     methods = g_hash_table_new (g_str_hash, g_str_equal);
     signon_identity_store_credentials_with_args (identity,
@@ -745,6 +751,7 @@ new_identity()
                                                  1,
                                                  methods,
                                                  "caption",
+                                                 NULL,
                                                  NULL,
                                                  NULL,
                                                  0,
@@ -847,7 +854,7 @@ START_TEST(test_store_credentials_identity)
 {
     g_type_init ();
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    SignonIdentity *idty = signon_identity_new(NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -862,6 +869,7 @@ START_TEST(test_store_credentials_identity)
                                                  1,
                                                  methods,
                                                  "caption",
+                                                 NULL,
                                                  NULL,
                                                  NULL,
                                                  0,
@@ -904,7 +912,7 @@ START_TEST(test_verify_secret_identity)
 {
     g_type_init ();
     g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    SignonIdentity *idty = signon_identity_new(NULL);
     fail_unless (idty != NULL);
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
@@ -921,6 +929,7 @@ START_TEST(test_verify_secret_identity)
                                                  1,
                                                  methods,
                                                  caption,
+                                                 NULL,
                                                  NULL,
                                                  NULL,
                                                  0,
@@ -1418,6 +1427,7 @@ test_regression_unref_process_cb (SignonAuthSession *self,
 
 START_TEST(test_regression_unref)
 {
+    SignonIdentity *identity;
     SignonAuthSession *auth_session;
     GHashTable *session_data;
     GError *error = NULL;
@@ -1428,7 +1438,9 @@ START_TEST(test_regression_unref)
     g_type_init ();
     main_loop = g_main_loop_new (NULL, FALSE);
 
-    auth_session = signon_auth_session_new (0, "ssotest", &error);
+    identity = signon_identity_new_from_db (0, NULL);
+    fail_unless (identity != NULL);
+    auth_session = signon_auth_session_new (identity, "ssotest", &error);
     fail_unless (auth_session != NULL);
 
     session_data = g_hash_table_new (g_str_hash, g_str_equal);
@@ -1442,6 +1454,9 @@ START_TEST(test_regression_unref)
                                  test_regression_unref_process_cb,
                                  g_strdup ("Hi there!"));
     g_main_loop_run (main_loop);
+
+    g_object_unref (auth_session);
+    g_object_unref (identity);
 
     end_test ();
 }

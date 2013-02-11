@@ -123,7 +123,7 @@ typedef struct _AuthSessionProcessCbData
 static void auth_session_state_changed_cb (GDBusProxy *proxy, gint state, gchar *message, gpointer user_data);
 static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy, gpointer user_data);
 
-static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
+static gboolean auth_session_priv_init (SignonAuthSession *self, const gchar *method_name, GError **err);
 
 static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
@@ -421,7 +421,6 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
  */
 SignonAuthSession *
 signon_auth_session_new (gpointer identity_proxy,
-                         gint id,
                          const gchar *method_name,
                          GError **err)
 {
@@ -433,7 +432,7 @@ signon_auth_session_new (gpointer identity_proxy,
                                      NULL));
     g_return_val_if_fail (self != NULL, NULL);
 
-    if (!auth_session_priv_init(self, id, method_name, err))
+    if (!auth_session_priv_init(self, method_name, err))
     {
         if (*err)
             g_warning ("%s returned error: %s", G_STRFUNC, (*err)->message);
@@ -792,14 +791,13 @@ static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy,
 }
 
 static gboolean
-auth_session_priv_init (SignonAuthSession *self, guint id,
+auth_session_priv_init (SignonAuthSession *self,
                         const gchar *method_name, GError **err)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), FALSE);
     SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
     g_return_val_if_fail (priv, FALSE);
 
-    priv->id = id;
     priv->method_name = g_strdup (method_name);
 
     priv->registering = TRUE;

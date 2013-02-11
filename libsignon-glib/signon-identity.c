@@ -693,7 +693,6 @@ signon_identity_create_session(SignonIdentity *self,
     }
 
     SignonAuthSession *session = signon_auth_session_new (priv->proxy,
-                                                          priv->id,
                                                           method,
                                                           error);
     if (session)

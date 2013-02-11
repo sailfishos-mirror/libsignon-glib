@@ -145,7 +145,6 @@ struct _SignonAuthSessionClass {
 GType signon_auth_session_get_type (void) G_GNUC_CONST;
 
 SignonAuthSession *signon_auth_session_new(gpointer identity_proxy,
-                                           gint id,
                                            const gchar *method_name,
                                            GError **err);
 
