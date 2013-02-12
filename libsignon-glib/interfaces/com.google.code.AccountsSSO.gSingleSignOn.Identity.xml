@@ -1,6 +1,6 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
-  <interface name="com.google.code.AccountsSSO.SingleSignOn.Identity">
+  <interface name="com.google.code.AccountsSSO.gSingleSignOn.Identity">
     <signal name="unregistered">
     </signal>
     <signal name="infoUpdated">
@@ -20,7 +20,6 @@
     <method name="verifyUser">
       <arg type="b" direction="out"/>
       <arg name="params" type="a{sv}" direction="in"/>
-      <annotation name="com.trolltech.QtDBus.QtTypeName.In4" value="QVariantMap"/>
     </method>
     <method name="verifySecret">
       <arg type="b" direction="out"/>
@@ -34,7 +33,6 @@
     <method name="store">
       <arg type="u" direction="out"/>
       <arg type="a{sv}" direction="in"/>
-      <annotation name="com.trolltech.QtDBus.QtTypeName.In4" value="QVariantMap"/>
     </method>
     <method name="addReference">
       <arg type="i" direction="out"/>

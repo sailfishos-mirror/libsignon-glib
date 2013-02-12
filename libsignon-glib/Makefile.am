@@ -33,9 +33,9 @@ BUILT_SOURCES = \
 
 CLEANFILES = \
 	$(BUILT_SOURCES) \
-	sso-auth-service-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthService.xml \
-	sso-auth-session-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml \
-	sso-identity-gen-doc-com.google.code.AccountsSSO.SingleSignOn.Identity.xml
+	sso-auth-service-gen-doc-com.google.code.AccountsSSO.gSingleSignOn.AuthService.xml \
+	sso-auth-session-gen-doc-com.google.code.AccountsSSO.gSingleSignOn.AuthSession.xml \
+	sso-identity-gen-doc-com.google.code.AccountsSSO.gSingleSignOn.Identity.xml
 
 libsignon_glib_la_SOURCES = \
 	signon-auth-service.h \
@@ -82,25 +82,25 @@ libsignon_glib_headers_with_enums = \
 # default is /usr/share/dbus-1/interfaces
 DBUS_INTERFACES_DIR = interfaces
 
-sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
+sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.gSingleSignOn.AuthService.xml
 	$(AM_V_GEN)gdbus-codegen \
 		--generate-c-code sso-auth-service-gen \
 		--generate-docbook sso-auth-service-gen-doc \
-		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthService" org.gtk.GDBus.C.Name SsoAuthService \
+		--annotate "com.google.code.AccountsSSO.gSingleSignOn.AuthService" org.gtk.GDBus.C.Name SsoAuthService \
 		$<
 
-sso-auth-session-gen.h sso-auth-session-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
+sso-auth-session-gen.h sso-auth-session-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.gSingleSignOn.AuthSession.xml
 	$(AM_V_GEN)gdbus-codegen \
 		--generate-c-code sso-auth-session-gen \
 		--generate-docbook sso-auth-session-gen-doc \
-		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthSession" org.gtk.GDBus.C.Name SsoAuthSession \
+		--annotate "com.google.code.AccountsSSO.gSingleSignOn.AuthSession" org.gtk.GDBus.C.Name SsoAuthSession \
 		$<
 
-sso-identity-gen.h sso-identity-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
+sso-identity-gen.h sso-identity-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.gSingleSignOn.Identity.xml
 	$(AM_V_GEN)gdbus-codegen \
 		--generate-c-code sso-identity-gen \
 		--generate-docbook sso-identity-gen-doc \
-		--annotate "com.google.code.AccountsSSO.SingleSignOn.Identity" org.gtk.GDBus.C.Name SsoIdentity \
+		--annotate "com.google.code.AccountsSSO.gSingleSignOn.Identity" org.gtk.GDBus.C.Name SsoIdentity \
 		$<
 
 signon-marshal.h: signon-marshal.list Makefile

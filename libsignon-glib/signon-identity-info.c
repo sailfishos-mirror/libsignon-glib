@@ -273,7 +273,6 @@ SignonIdentityInfo *signon_identity_info_new ()
     info->methods = g_hash_table_new_full (g_str_hash, g_str_equal,
                                             g_free, (GDestroyNotify)g_strfreev);
     info->store_secret = FALSE;
-    info->owner = signon_security_context_new ();
 
     return info;
 }

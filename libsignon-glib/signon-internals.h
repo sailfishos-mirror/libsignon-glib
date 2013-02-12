@@ -43,10 +43,10 @@
 /*
  * Common DBUS definitions
  * */
-#define SIGNOND_SERVICE_PREFIX     "com.google.code.AccountsSSO.SingleSignOn"
+#define SIGNOND_SERVICE_PREFIX     "com.google.code.AccountsSSO.gSingleSignOn"
 #define SIGNOND_SERVICE            SIGNOND_SERVICE_PREFIX
 
-#define SIGNOND_DAEMON_OBJECTPATH  "/com/google/code/AccountsSSO/SingleSignOn"
+#define SIGNOND_DAEMON_OBJECTPATH  "/com/google/code/AccountsSSO/gSingleSignOn"
 #define SIGNOND_DAEMON_INTERFACE       SIGNOND_SERVICE_PREFIX ".AuthService"
 #define SIGNOND_IDENTITY_INTERFACE     SIGNOND_SERVICE_PREFIX ".Identity"
 #define SIGNOND_AUTH_SESSION_INTERFACE SIGNOND_SERVICE_PREFIX ".AuthSession"

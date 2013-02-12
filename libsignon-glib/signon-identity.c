@@ -795,21 +795,10 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
     {
         signon_identity_info_set_owner (info, owner);
     }
-    else
-    {
-        signon_identity_info_set_owner_from_values (info, "", "");
-        DEBUG ("created empty owner context");
-    }
     if (access_control_list)
     {
         signon_identity_info_set_access_control_list (info,
                                                       access_control_list);
-    }
-    else
-    {
-        signon_identity_info_access_control_list_append (info,
-                            signon_security_context_new_from_values ("*", "*"));
-        DEBUG ("created wildcard access control list");
     }
     signon_identity_info_set_identity_type (info, type);
 
