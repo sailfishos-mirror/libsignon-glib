@@ -46,9 +46,9 @@
 #include "signon-errors.h"
 #include "signon-marshal.h"
 #include "signon-utils.h"
+#include "signon-identity.h"
 #include "sso-auth-service.h"
 #include "sso-auth-session-gen.h"
-#include "sso-identity-gen.h"
 
 
 G_DEFINE_TYPE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT);
@@ -75,7 +75,7 @@ static const gchar data_key_process[] = "signon-process";
 struct _SignonAuthSessionPrivate
 {
     SsoAuthSession *proxy;
-    SsoIdentity *identity_proxy;
+    SignonIdentity *identity;
     GCancellable *cancellable;
 
     guint id;
@@ -279,7 +279,7 @@ signon_auth_session_set_property (GObject *object,
     switch (property_id)
     {
         case PROP_IDENTITY:
-            self->priv->identity_proxy = g_value_dup_object (value);
+            self->priv->identity = g_value_dup_object (value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -297,7 +297,7 @@ signon_auth_session_get_property (GObject *object,
     switch (property_id)
     {
         case PROP_IDENTITY:
-            g_value_set_object (value, self->priv->identity_proxy);
+            g_value_set_object (value, self->priv->identity);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -337,12 +337,6 @@ signon_auth_session_dispose (GObject *object)
         priv->proxy = NULL;
     }
 
-    if (priv->identity_proxy)
-    {
-        g_object_unref (priv->identity_proxy);
-        priv->identity_proxy = NULL;
-    }
-
     G_OBJECT_CLASS (signon_auth_session_parent_class)->dispose (object);
 
     priv->dispose_has_run = TRUE;
@@ -372,9 +366,9 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
     object_class->get_property = signon_auth_session_get_property;
 
     pspec = g_param_spec_object ("identity",
-                                 "Identity Proxy Object",
-                                 "Identity Proxy Object construct parameter",
-                                 TYPE_SSO_IDENTITY,
+                                 "Identity Object",
+                                 "Identity Object construct parameter",
+                                 SIGNON_TYPE_IDENTITY,
                                  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_property (object_class,
                                      PROP_IDENTITY,
@@ -408,8 +402,7 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
 
 /**
  * signon_auth_session_new:
- * @id: the id of the #SignonIdentity to be used. Can be 0, if this session is
- * not bound to any stored identity.
+ * @parent: #SignonIdentity parent object.
  * @method_name: the name of the authentication method to be used.
  * @err: a pointer to a location which will contain the error, in case this
  * function fails.
@@ -420,11 +413,19 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
  * Returns: a new #SignonAuthSession.
  */
 SignonAuthSession *
-signon_auth_session_new (gpointer identity_proxy,
+signon_auth_session_new (GObject *parent,
                          const gchar *method_name,
                          GError **err)
 {
-    SsoIdentity *identity = SSO_IDENTITY(identity_proxy);
+    if (!SIGNON_IS_IDENTITY(parent))
+    {
+        g_set_error (err,
+                     signon_error_quark(),
+                     SIGNON_ERROR_UNKNOWN,
+                     "Parent object is wrong type");
+        return NULL;
+    }
+    SignonIdentity *identity = SIGNON_IDENTITY(parent);
 
     SignonAuthSession *self = SIGNON_AUTH_SESSION(g_object_new (
                                      SIGNON_TYPE_AUTH_SESSION,
@@ -675,80 +676,6 @@ signon_auth_session_cancel (SignonAuthSession *self)
 }
 
 static void
-identity_get_auth_session_reply (GObject *object, GAsyncResult *res,
-                                 gpointer userdata)
-{
-    SsoIdentity *proxy = SSO_IDENTITY (object);
-    gchar *object_path = NULL;
-    GError *error = NULL;
-
-    sso_identity_call_get_auth_session_finish (proxy,
-                                               &object_path,
-                                               res,
-                                               &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (userdata));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (userdata);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
-    priv->registering = FALSE;
-    if (!g_strcmp0(object_path, "") || error)
-    {
-        if (error)
-            DEBUG ("Error message is %s", error->message);
-        else
-            error = g_error_new (signon_error_quark(),
-                                 SIGNON_ERROR_RUNTIME,
-                                 "Cannot create remote AuthSession object");
-    }
-    else
-    {
-        GDBusConnection *connection;
-        const gchar *bus_name;
-        GError *proxy_error = NULL;
-
-        connection = g_dbus_proxy_get_connection ((GDBusProxy *)proxy);
-        bus_name = g_dbus_proxy_get_name ((GDBusProxy *)proxy);
-
-        priv->proxy =
-            sso_auth_session_proxy_new_sync (connection,
-                                             G_DBUS_PROXY_FLAGS_NONE,
-                                             bus_name,
-                                             object_path,
-                                             priv->cancellable,
-                                             &proxy_error);
-        if (G_UNLIKELY (proxy_error != NULL))
-        {
-            g_warning ("Failed to initialize AuthSession proxy: %s",
-                       proxy_error->message);
-            g_clear_error (&proxy_error);
-        }
-
-        g_dbus_proxy_set_default_timeout ((GDBusProxy *)priv->proxy,
-                                          G_MAXINT);
-
-        priv->signal_state_changed =
-            g_signal_connect (priv->proxy,
-                              "state-changed",
-                              G_CALLBACK (auth_session_state_changed_cb),
-                              self);
-
-        priv->signal_unregistered =
-           g_signal_connect (priv->proxy,
-                             "unregistered",
-                             G_CALLBACK (auth_session_remote_object_destroyed_cb),
-                             self);
-    }
-
-    DEBUG ("Object path received: %s", object_path);
-    g_free (object_path);
-    _signon_object_ready (self, auth_session_object_quark (), error);
-    g_clear_error (&error);
-}
-
-static void
 auth_session_state_changed_cb (GDBusProxy *proxy,
                                gint state,
                                gchar *message,
@@ -800,13 +727,7 @@ auth_session_priv_init (SignonAuthSession *self,
 
     priv->method_name = g_strdup (method_name);
 
-    priv->registering = TRUE;
-    sso_identity_call_get_auth_session (
-                                        priv->identity_proxy,
-                                        method_name,
-                                        priv->cancellable,
-                                        identity_get_auth_session_reply,
-                                        self);
+    priv->registering = FALSE;
     priv->busy = FALSE;
     priv->canceled = FALSE;
     return TRUE;
@@ -906,6 +827,64 @@ auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer use
 }
 
 static void
+signon_auth_session_complete (SignonAuthSession *self,
+                              GError *error,
+                              GDBusConnection *connection,
+                              const gchar *bus_name,
+                              const gchar *object_path)
+{
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    priv->registering = FALSE;
+    if (!g_strcmp0(object_path, "") || error)
+    {
+        if (error)
+            DEBUG ("Error message is %s", error->message);
+        else
+            error = g_error_new (signon_error_quark(),
+                                 SIGNON_ERROR_RUNTIME,
+                                 "Cannot create remote AuthSession object");
+    }
+    else
+    {
+        GError *proxy_error = NULL;
+
+        priv->proxy =
+            sso_auth_session_proxy_new_sync (connection,
+                                             G_DBUS_PROXY_FLAGS_NONE,
+                                             bus_name,
+                                             object_path,
+                                             priv->cancellable,
+                                             &proxy_error);
+        if (G_UNLIKELY (proxy_error != NULL))
+        {
+            g_warning ("Failed to initialize AuthSession proxy: %s",
+                       proxy_error->message);
+            g_clear_error (&proxy_error);
+        }
+
+        g_dbus_proxy_set_default_timeout ((GDBusProxy *)priv->proxy,
+                                          G_MAXINT);
+
+        priv->signal_state_changed =
+            g_signal_connect (priv->proxy,
+                              "state-changed",
+                              G_CALLBACK (auth_session_state_changed_cb),
+                              self);
+
+        priv->signal_unregistered =
+           g_signal_connect (priv->proxy,
+                             "unregistered",
+                             G_CALLBACK (auth_session_remote_object_destroyed_cb),
+                             self);
+    }
+
+    DEBUG ("Object path received: %s", object_path);
+    _signon_object_ready (self, auth_session_object_quark (), error);
+}
+
+static void
 auth_session_check_remote_object(SignonAuthSession *self)
 {
     g_return_if_fail (self != NULL);
@@ -915,17 +894,16 @@ auth_session_check_remote_object(SignonAuthSession *self)
     if (priv->proxy != NULL)
         return;
 
-    g_return_if_fail (priv->identity_proxy != NULL);
+    g_return_if_fail (priv->identity != NULL);
 
     if (!priv->registering)
     {
         priv->registering = TRUE;
-        sso_identity_call_get_auth_session (
-            priv->identity_proxy,
-            priv->method_name,
-            priv->cancellable,
-            identity_get_auth_session_reply,
-            self);
+        signon_identity_get_auth_session (priv->identity,
+                                          self,
+                                          priv->method_name,
+                                          signon_auth_session_complete);
+
     }
 }
 

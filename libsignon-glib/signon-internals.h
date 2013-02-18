@@ -123,8 +123,7 @@
 #define SIGNOND_USER_ERROR_ERR_NAME SIGNOND_ERR_PREFIX "User"
 
 
-#include "signon-identity.h"
-#include "signon-auth-session.h"
+#include "signon-identity-info.h"
 
 G_BEGIN_DECLS
 

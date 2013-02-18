@@ -420,7 +420,7 @@ START_TEST(test_auth_session_creation)
 
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new(NULL);
-    fail_unless (idty != NULL, "Cannot create Iddentity object");
+    fail_unless (idty != NULL, "Cannot create Identity object");
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                     "ssotest",

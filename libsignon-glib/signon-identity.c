@@ -115,6 +115,19 @@ typedef enum {
     SIGNON_SIGNOUT
 } IdentityOperation;
 
+typedef struct _IdentitySessionCbData
+{
+    SignonIdentity *self;
+    SignonAuthSession *session;
+    SignonIdentitySessionReadyCb cb;
+} IdentitySessionCbData;
+
+typedef struct _IdentitySessionData
+{
+    const gchar *method;
+    gpointer cb_data;
+} IdentitySessionData;
+
 typedef struct _IdentityVerifyCbData
 {
     SignonIdentity *self;
@@ -155,7 +168,6 @@ static void identity_store_credentials_ready_cb (gpointer object, const GError *
 static void identity_store_credentials_reply (GObject *object,
                                               GAsyncResult *res,
                                               gpointer userdata);
-static void identity_session_object_destroyed_cb (gpointer data, GObject *where_the_session_was);
 static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gint operation,
                                     SignonIdentityVerifyCb cb, gpointer user_data);
 static void identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data);
@@ -167,6 +179,13 @@ static void identity_info_ready_cb (gpointer object, const GError *error, gpoint
 static void identity_process_signout (SignonIdentity *self);
 static void identity_process_updated (SignonIdentity *self);
 static void identity_process_removed (SignonIdentity *self);
+static void identity_get_auth_session_reply (GObject *object,
+                                             GAsyncResult *res,
+                                             gpointer userdata);
+static void identity_session_ready_cb (gpointer object, const GError *error,
+                                       gpointer user_data);
+static void identity_session_object_destroyed_cb (gpointer data,
+                                                  GObject *where_the_session_was);
 
 static GQuark
 identity_object_quark ()
@@ -234,6 +253,7 @@ signon_identity_init (SignonIdentity *identity)
                                                   SignonIdentityPrivate);
 
     priv = identity->priv;
+    priv->proxy = NULL;
     priv->auth_service_proxy = sso_auth_service_get_instance();
     priv->cancellable = g_cancellable_new ();
     priv->registration_state = NOT_REGISTERED;
@@ -627,21 +647,6 @@ signon_identity_new (const gchar *application_context)
     return identity;
 }
 
-static void
-identity_session_object_destroyed_cb(gpointer data,
-                                     GObject *where_the_session_was)
-{
-    g_return_if_fail (SIGNON_IS_IDENTITY (data));
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-    SignonIdentity *self = SIGNON_IDENTITY (data);
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
-    priv->sessions = g_slist_remove(priv->sessions, (gpointer)where_the_session_was);
-    g_object_unref (self);
-}
-
 /**
  * signon_identity_create_session:
  * @self: the #SignonIdentity.
@@ -692,7 +697,7 @@ signon_identity_create_session(SignonIdentity *self,
         list = list->next;
     }
 
-    SignonAuthSession *session = signon_auth_session_new (priv->proxy,
+    SignonAuthSession *session = signon_auth_session_new (G_OBJECT(self),
                                                           method,
                                                           error);
     if (session)
@@ -1498,3 +1503,118 @@ void signon_identity_query_info(SignonIdentity *self,
                             SIGNON_INFO,
                             cb_data);
 }
+
+static void
+identity_get_auth_session_reply (GObject *object, GAsyncResult *res,
+                                 gpointer userdata)
+{
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    gchar *object_path = NULL;
+    GError *error = NULL;
+
+    sso_identity_call_get_auth_session_finish (proxy,
+                                               &object_path,
+                                               res,
+                                               &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
+
+    IdentitySessionCbData *cb_data = (IdentitySessionCbData *) userdata;
+    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (cb_data->cb != NULL);
+
+    (cb_data->cb) (cb_data->session,
+                   error,
+                   g_dbus_proxy_get_connection ((GDBusProxy *)proxy),
+                   g_dbus_proxy_get_name ((GDBusProxy *)proxy),
+                   object_path);
+
+    g_slice_free (IdentitySessionCbData, cb_data);
+    g_free (object_path);
+    g_clear_error (&error);
+}
+
+static void
+identity_session_ready_cb(gpointer object, const GError *error, gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (object));
+
+    SignonIdentity *self = SIGNON_IDENTITY (object);
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    IdentitySessionData *operation_data = (IdentitySessionData *) user_data;
+    g_return_if_fail (operation_data != NULL);
+
+    IdentitySessionCbData *cb_data = operation_data->cb_data;
+    g_return_if_fail (cb_data != NULL);
+
+    if (priv->removed == TRUE)
+    {
+        GError *new_error = g_error_new (signon_error_quark(),
+                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
+                                         "Already removed from database.");
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (cb_data->session, new_error, NULL, NULL, NULL);
+        }
+
+        g_error_free (new_error);
+    }
+    else
+    {
+        g_return_if_fail (priv->proxy != NULL);
+
+        sso_identity_call_get_auth_session (
+            priv->proxy,
+            operation_data->method,
+            priv->cancellable,
+            identity_get_auth_session_reply,
+            cb_data);
+    }
+
+    g_slice_free (IdentitySessionData, operation_data);
+}
+
+static void
+identity_session_object_destroyed_cb(gpointer data,
+                                     GObject *where_the_session_was)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (data));
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    SignonIdentity *self = SIGNON_IDENTITY (data);
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    priv->sessions = g_slist_remove(priv->sessions, (gpointer)where_the_session_was);
+    g_object_unref (self);
+}
+
+void signon_identity_get_auth_session (SignonIdentity *self,
+                                       SignonAuthSession *session,
+                                       const gchar *method,
+                                       SignonIdentitySessionReadyCb cb)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    IdentitySessionCbData *cb_data = g_slice_new0 (IdentitySessionCbData);
+    cb_data->self = self;
+    cb_data->session = session;
+    cb_data->cb = cb;
+
+    IdentitySessionData *operation_data = g_slice_new0 (IdentitySessionData);
+    operation_data->method = method;
+    operation_data->cb_data = cb_data;
+
+    identity_check_remote_registration (self);
+    _signon_object_call_when_ready (self,
+                                    identity_object_quark(),
+                                    identity_session_ready_cb,
+                                    operation_data);
+}
+

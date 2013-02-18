@@ -202,6 +202,17 @@ void signon_identity_remove_reference(SignonIdentity *self,
                             SignonIdentityReferenceRemovedCb cb,
                             gpointer user_data);
 
+typedef void (*SignonIdentitySessionReadyCb) (SignonAuthSession *self,
+                                              GError *error,
+                                              GDBusConnection *connection,
+                                              const gchar *bus_name,
+                                              const gchar *object_path);
+void signon_identity_get_auth_session(SignonIdentity *self,
+                                      SignonAuthSession *session,
+                                      const gchar *method,
+                                      SignonIdentitySessionReadyCb cb);
+                                         
+
 G_END_DECLS
 
 #endif /* _SIGNON_IDENTITY_H_ */
