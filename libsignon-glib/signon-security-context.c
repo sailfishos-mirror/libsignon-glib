@@ -32,12 +32,6 @@ _security_context_free (gpointer ptr)
     signon_security_context_free (ctx);
 }
 
-static SignonSecurityContext *
-_security_context_alloc ()
-{
-    return g_new0 (SignonSecurityContext, 1);
-}
-
 /**
  * signon_security_context_new:
  *
@@ -50,7 +44,7 @@ signon_security_context_new ()
 {
     SignonSecurityContext *ctx;
 
-    ctx = _security_context_alloc ();
+    ctx = g_slice_new0 (SignonSecurityContext);
     ctx->sys_ctx = g_strdup ("");
     ctx->app_ctx = g_strdup ("");
 
@@ -74,7 +68,7 @@ signon_security_context_new_from_values (const gchar *system_context,
 
     g_return_val_if_fail (system_context != NULL, NULL);
 
-    ctx = _security_context_alloc ();
+    ctx = g_slice_new0 (SignonSecurityContext);
     ctx->sys_ctx = g_strdup (system_context);
     if (application_context)
         ctx->app_ctx = g_strdup (application_context);
@@ -110,11 +104,11 @@ signon_security_context_copy (const SignonSecurityContext *src_ctx)
 void
 signon_security_context_free (SignonSecurityContext *ctx)
 {
-    g_return_if_fail (ctx != NULL);
+    if (ctx == NULL) return;
 
     g_free (ctx->sys_ctx);
     g_free (ctx->app_ctx);
-    g_free (ctx);
+    g_slice_free (SignonSecurityContext, ctx);
 }
 
 /**
