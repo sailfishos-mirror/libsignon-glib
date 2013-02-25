@@ -702,7 +702,7 @@ signon_identity_create_session(SignonIdentity *self,
                                                           error);
     if (session)
     {
-        DEBUG ("%s %d", G_STRFUNC, __LINE__);
+        DEBUG ("%s %d - success", G_STRFUNC, __LINE__);
         priv->sessions = g_slist_append(priv->sessions, session);
         g_object_weak_ref (G_OBJECT(session),
                            identity_session_object_destroyed_cb,
@@ -1512,6 +1512,8 @@ identity_get_auth_session_reply (GObject *object, GAsyncResult *res,
     gchar *object_path = NULL;
     GError *error = NULL;
 
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
     sso_identity_call_get_auth_session_finish (proxy,
                                                &object_path,
                                                res,
@@ -1537,12 +1539,11 @@ static void
 identity_session_ready_cb(gpointer object, const GError *error, gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (object));
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     SignonIdentity *self = SIGNON_IDENTITY (object);
     SignonIdentityPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     IdentitySessionData *operation_data = (IdentitySessionData *) user_data;
     g_return_if_fail (operation_data != NULL);
@@ -1598,6 +1599,7 @@ void signon_identity_get_auth_session (SignonIdentity *self,
                                        SignonIdentitySessionReadyCb cb)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     SignonIdentityPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);

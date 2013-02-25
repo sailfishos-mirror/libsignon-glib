@@ -427,6 +427,8 @@ signon_auth_session_new (GObject *parent,
     }
     SignonIdentity *identity = SIGNON_IDENTITY(parent);
 
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
     SignonAuthSession *self = SIGNON_AUTH_SESSION(g_object_new (
                                      SIGNON_TYPE_AUTH_SESSION,
                                      "identity", identity,
@@ -836,6 +838,8 @@ signon_auth_session_complete (SignonAuthSession *self,
     SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
     priv->registering = FALSE;
     if (!g_strcmp0(object_path, "") || error)
     {
@@ -898,6 +902,8 @@ auth_session_check_remote_object(SignonAuthSession *self)
 
     if (!priv->registering)
     {
+        DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
         priv->registering = TRUE;
         signon_identity_get_auth_session (priv->identity,
                                           self,
