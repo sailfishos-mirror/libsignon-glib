@@ -149,6 +149,7 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
     GError *error = NULL;
 
     g_return_if_fail (res_process != NULL);
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     sso_auth_session_call_process_finish (proxy, &reply, res, &error);
 
@@ -206,6 +207,8 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         return;
     }
 
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
     process_data = g_object_get_data ((GObject *)res, data_key_process);
     g_return_if_fail (process_data != NULL);
 
@@ -233,6 +236,8 @@ process_async_cb_wrapper (GObject *object, GAsyncResult *res,
     GHashTable *reply = NULL;
     GError *error = NULL;
     gboolean cancelled;
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     v_reply = signon_auth_session_process_finish (self, res, &error);
 
@@ -352,6 +357,7 @@ signon_auth_session_finalize (GObject *object)
     g_return_if_fail (priv != NULL);
 
     g_free (priv->method_name);
+    g_object_unref (priv->identity);
 
     G_OBJECT_CLASS (signon_auth_session_parent_class)->finalize (object);
 }
@@ -553,6 +559,7 @@ signon_auth_session_process (SignonAuthSession *self,
     GVariant *v_session_data;
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     AuthSessionProcessCbData *cb_data = g_slice_new0 (AuthSessionProcessCbData);
     cb_data->cb = cb;
