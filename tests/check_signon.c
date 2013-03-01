@@ -44,6 +44,8 @@
 #include <string.h>
 #include <unistd.h>
 
+static const gchar *ssotest_mechanisms[] =
+    { "mech1", "mech2", "mech3", "BLOB", NULL };
 static GMainLoop *main_loop = NULL;
 static SignonIdentity *identity = NULL;
 static SignonAuthService *auth_service = NULL;
@@ -227,9 +229,9 @@ test_quit_main_loop_cb (gpointer data)
 
 static void
 test_auth_session_query_mechanisms_cb (SignonAuthSession *self,
-                                      gchar **mechanisms,
-                                      const GError *error,
-                                      gpointer user_data)
+                                       gchar **mechanisms,
+                                       const GError *error,
+                                       gpointer user_data)
 {
     if (error)
     {
@@ -272,11 +274,12 @@ START_TEST(test_auth_session_query_mechanisms)
 
     g_clear_error(&err);
 
-    gchar* patterns[4];
+    gchar* patterns[5];
     patterns[0] = g_strdup("mech1");
     patterns[1] = g_strdup("mech2");
     patterns[2] = g_strdup("mech3");
-    patterns[3] = NULL;
+    patterns[3] = g_strdup("BLOB");
+    patterns[4] = NULL;
 
     signon_auth_session_query_available_mechanisms(auth_session,
                                                   (const gchar**)patterns,
@@ -677,6 +680,7 @@ START_TEST(test_auth_session_process_after_store)
                  "Failed to initialize the Identity.");
 
     info = signon_identity_info_new ();
+    signon_identity_info_set_method (info, "ssotest", ssotest_mechanisms);
     signon_identity_info_set_owner_from_values (info, "", "");
     signon_identity_info_access_control_list_append (info,
         signon_security_context_new_from_values ("*", "*"));
@@ -746,12 +750,13 @@ new_identity()
     identity = signon_identity_new (NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity));
     methods = g_hash_table_new (g_str_hash, g_str_equal);
+    g_hash_table_insert (methods, "ssotest", ssotest_mechanisms);
     signon_identity_store_credentials_with_args (identity,
                                                  "James Bond",
                                                  "007",
-                                                 1,
+                                                 TRUE,
                                                  methods,
-                                                 "caption",
+                                                 "MI-6",
                                                  NULL,
                                                  NULL,
                                                  NULL,
@@ -1104,8 +1109,17 @@ static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *inf
 
 static SignonIdentityInfo *create_standard_info()
 {
+    GHashTable *methods;
+
     g_debug("%s", G_STRFUNC);
+
     SignonIdentityInfo *info = signon_identity_info_new ();
+
+    methods = g_hash_table_new (g_str_hash, g_str_equal);
+    g_hash_table_insert (methods, "ssotest", ssotest_mechanisms);
+    signon_identity_info_set_methods (info, methods);
+    g_hash_table_destroy (methods);
+
     signon_identity_info_set_owner_from_values (info, "", "");
     signon_identity_info_access_control_list_append (info,
         signon_security_context_new_from_values ("*", "*"));

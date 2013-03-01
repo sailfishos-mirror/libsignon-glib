@@ -174,10 +174,6 @@ G_GNUC_INTERNAL
 GVariant *
 signon_identity_info_to_variant (const SignonIdentityInfo *self);
 
-G_GNUC_INTERNAL
-void signon_identity_info_set_methods (SignonIdentityInfo *self,
-                                       const GHashTable *methods);
-
 G_END_DECLS
 
 #endif

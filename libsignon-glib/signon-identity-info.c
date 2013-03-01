@@ -71,6 +71,14 @@ static void identity_methods_copy (gpointer key, gpointer value, gpointer user_d
                                      (const gchar* const *)value);
 }
 
+/**
+ * signon_identity_info_set_methods:
+ * @info: the #SignonIdentityInfo.
+ * @methods: (transfer none) (element-type utf8 GStrv): methods.
+ *
+ * Set allowed methods.
+ * Mechanisms are method-specific functions.
+ */
 void signon_identity_info_set_methods (SignonIdentityInfo *info,
                                        const GHashTable *methods)
 {
@@ -152,7 +160,7 @@ signon_identity_info_new_from_variant (GVariant *variant)
 
     if (g_variant_lookup (variant,
                       SIGNOND_IDENTITY_INFO_OWNER,
-                      "(ss)",
+                      "@(ss)",
                       &owner))
     {
         info->owner = signon_security_context_deconstruct_variant (owner);
@@ -527,9 +535,8 @@ void signon_identity_info_set_caption (SignonIdentityInfo *info, const gchar *ca
  * @method: an authentication method.
  * @mechanisms: a %NULL-termianted list of mechanisms.
  *
- * Adds a method to the list of allowed methods. If this method is not called
- * even once, then all methods are allowed.
- * Mechanisms are method-specific variants of authentication.
+ * Adds a method to the list of allowed methods.
+ * Mechanisms are method-specific functions.
  */
 void signon_identity_info_set_method (SignonIdentityInfo *info, const gchar *method,
                                       const gchar* const *mechanisms)
