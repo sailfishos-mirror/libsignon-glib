@@ -245,7 +245,8 @@ test_auth_session_query_mechanisms_cb (SignonAuthSession *self,
     gchar** patterns = (gchar**)user_data;
 
     int i = g_strv_length(mechanisms);
-    fail_unless( i == g_strv_length(patterns), "The number of obtained methods is wrong: %d %s", i);
+    int x = g_strv_length(patterns);
+    fail_unless( i == x, "The number of obtained methods is wrong: %d vs %d", i, x);
 
     while ( i > 0 )
     {
@@ -274,12 +275,11 @@ START_TEST(test_auth_session_query_mechanisms)
 
     g_clear_error(&err);
 
-    gchar* patterns[5];
+    gchar* patterns[4];
     patterns[0] = g_strdup("mech1");
     patterns[1] = g_strdup("mech2");
     patterns[2] = g_strdup("mech3");
-    patterns[3] = g_strdup("BLOB");
-    patterns[4] = NULL;
+    patterns[3] = NULL;
 
     signon_auth_session_query_available_mechanisms(auth_session,
                                                   (const gchar**)patterns,
