@@ -45,7 +45,7 @@ GQuark signon_error_quark (void)
 {
     static volatile gsize quark = 0;
 
-    g_dbus_error_register_error_domain ("signon-errors",
+    g_dbus_error_register_error_domain ("gsignond",
                                         &quark,
                                         signon_error_entries,
                                         G_N_ELEMENTS (signon_error_entries));

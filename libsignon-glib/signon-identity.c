@@ -1207,30 +1207,32 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
 
     if (priv->removed == TRUE)
     {
+        DEBUG ("%s identity removed", G_STRFUNC);
+
         GError *new_error = g_error_new (signon_error_quark(),
                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
                                          "Already removed from database.");
         if (cb_data->cb)
-        {
             (cb_data->cb) (self, NULL, new_error, cb_data->user_data);
-        }
 
         g_error_free (new_error);
     }
     else if (error || priv->id == 0)
     {
+        DEBUG ("%s identity is new", G_STRFUNC);
+
         if (error)
             DEBUG ("IdentityError: %s", error->message);
         else
             DEBUG ("Identity is not stored and has no info yet");
 
         if (cb_data->cb)
-        {
             (cb_data->cb) (self, NULL, error, cb_data->user_data);
-        }
     }
     else if (priv->updated == FALSE)
     {
+        DEBUG ("%s identity needs update, call daemon", G_STRFUNC);
+
         g_return_if_fail (priv->proxy != NULL);
         sso_identity_call_get_info (priv->proxy,
                                     priv->cancellable,
@@ -1239,10 +1241,10 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
     }
     else
     {
+        DEBUG ("%s pass existing one", G_STRFUNC);
+
         if (cb_data->cb)
-        {
             (cb_data->cb) (self, priv->identity_info, error, cb_data->user_data);
-        }
     }
 
     if (priv->updated == TRUE)

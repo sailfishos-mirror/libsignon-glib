@@ -562,7 +562,7 @@ START_TEST(test_auth_session_process_failure)
 
     g_type_init ();
 
-    identity = signon_identity_new_from_db (0, NULL);
+    identity = signon_identity_new_from_db (1, NULL);
     fail_unless (identity != NULL, "Cannot create Identity object");
     auth_session = signon_auth_session_new (identity,
                                             "nonexisting-method",
@@ -874,7 +874,7 @@ START_TEST(test_store_credentials_identity)
                                                  "007",
                                                  1,
                                                  methods,
-                                                 "caption",
+                                                 "MI-6",
                                                  NULL,
                                                  NULL,
                                                  NULL,
@@ -892,16 +892,6 @@ START_TEST(test_store_credentials_identity)
 }
 END_TEST
 
-static void identity_verify_secret_cb(SignonIdentity *self,
-                                      gboolean valid,
-                                      const GError *error,
-                                      gpointer user_data)
-{
-    fail_unless (error == NULL, "The callback returned error for proper secret");
-    fail_unless (valid == TRUE, "The callback gives FALSE for proper secret");
-    g_main_loop_quit((GMainLoop *)user_data);
-}
-
 static void identity_verify_username_cb(SignonIdentity *self,
                                         gboolean valid,
                                         const GError *error,
@@ -912,49 +902,6 @@ static void identity_verify_username_cb(SignonIdentity *self,
 
     g_main_loop_quit((GMainLoop *)user_data);
 }
-
-
-START_TEST(test_verify_secret_identity)
-{
-    g_type_init ();
-    g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL);
-    fail_unless (idty != NULL);
-    fail_unless (SIGNON_IS_IDENTITY (idty),
-                 "Failed to initialize the Identity.");
-
-    GHashTable *methods = create_methods_hashtable();
-
-    gchar username[] = "James Bond";
-    gchar secret[] = "007";
-    gchar caption[] = "caption";
-
-    signon_identity_store_credentials_with_args (idty,
-                                                 username,
-                                                 secret,
-                                                 1,
-                                                 methods,
-                                                 caption,
-                                                 NULL,
-                                                 NULL,
-                                                 NULL,
-                                                 0,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
-    main_loop = g_main_loop_new (NULL, FALSE);
-
-    signon_identity_verify_secret(idty,
-                                 secret,
-                                 identity_verify_secret_cb,
-                                 main_loop);
-
-    g_main_loop_run (main_loop);
-
-    g_hash_table_destroy (methods);
-    g_object_unref (idty);
-    end_test ();
-}
-END_TEST
 
 static void identity_remove_cb(SignonIdentity *self, const GError *error, gpointer user_data)
 {
@@ -994,7 +941,7 @@ START_TEST(test_remove_identity)
 
     gchar username[] = "James Bond";
     gchar secret[] = "007";
-    gchar caption[] = "caption";
+    gchar caption[] = "MI-6";
 
     signon_identity_store_credentials_with_args (idty,
                                                  username,
@@ -1125,7 +1072,7 @@ static SignonIdentityInfo *create_standard_info()
         signon_security_context_new_from_values ("*", "*"));
     signon_identity_info_set_username (info, "James Bond");
     signon_identity_info_set_secret (info, "007", TRUE);
-    signon_identity_info_set_caption (info, "caption");
+    signon_identity_info_set_caption (info, "MI-6");
 
     gchar *mechanisms[] = {
             "mechanism1",
@@ -1165,7 +1112,7 @@ START_TEST(test_info_identity)
                                                 "007",
                                                  1,
                                                  methods,
-                                                 "caption",
+                                                 "MI-6",
                                                  NULL,
                                                  NULL,
                                                  NULL,
@@ -1178,7 +1125,7 @@ START_TEST(test_info_identity)
     info = signon_identity_info_new ();
     signon_identity_info_set_username (info, "James Bond");
     signon_identity_info_set_secret (info, "007", TRUE);
-    signon_identity_info_set_caption (info, "caption");
+    signon_identity_info_set_caption (info, "MI-6");
 
     gchar *mechanisms[] = {
             "mechanism1",
@@ -1453,7 +1400,7 @@ START_TEST(test_regression_unref)
     g_type_init ();
     main_loop = g_main_loop_new (NULL, FALSE);
 
-    identity = signon_identity_new_from_db (0, NULL);
+    identity = signon_identity_new_from_db (1, NULL);
     fail_unless (identity != NULL);
     auth_session = signon_auth_session_new (identity, "ssotest", &error);
     fail_unless (auth_session != NULL);
@@ -1502,7 +1449,6 @@ signon_suite(void)
     tcase_add_test (tc_core, test_auth_session_process_failure);
     tcase_add_test (tc_core, test_auth_session_process_after_store);
     tcase_add_test (tc_core, test_store_credentials_identity);
-    tcase_add_test (tc_core, test_verify_secret_identity);
     tcase_add_test (tc_core, test_remove_identity);
     tcase_add_test (tc_core, test_info_identity);
 
