@@ -932,34 +932,12 @@ START_TEST(test_remove_identity)
 
     main_loop = g_main_loop_new (NULL, FALSE);
     /*
-     * Try to remove non-stored idetnity
+     * Try to remove non-stored identity
      * */
     signon_identity_remove(idty, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
 
     GHashTable *methods = create_methods_hashtable();
-
-    gchar username[] = "James Bond";
-    gchar secret[] = "007";
-    gchar caption[] = "MI-6";
-
-    signon_identity_store_credentials_with_args (idty,
-                                                 username,
-                                                 secret,
-                                                 1,
-                                                 methods,
-                                                 caption,
-                                                 NULL,
-                                                 NULL,
-                                                 NULL,
-                                                 0,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
-    g_hash_table_destroy (methods);
-    g_main_loop_run (main_loop);
-
-    signon_identity_remove(idty, identity_remove_cb, NULL);
-    g_main_loop_run (main_loop);
 
     /*
      * Try to remove existing identy

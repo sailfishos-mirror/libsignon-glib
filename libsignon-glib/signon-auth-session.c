@@ -218,12 +218,6 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
                                    process_data->cancellable,
                                    auth_session_process_reply,
                                    res);
-
-    g_signal_emit (self,
-                   auth_session_signals[STATE_CHANGED],
-                   0,
-                   SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
-                   auth_session_process_pending_message);
 }
 
 static void
