@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+]>
+<refentry id="gdbus-com.google.code.AccountsSSO.gSingleSignOn.AuthService">
+  <refmeta>    <refentrytitle role="top_of_page" id="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-AuthService.top_of_page">com.google.code.AccountsSSO.gSingleSignOn.AuthService</refentrytitle>
+  <indexterm zone="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-AuthService.top_of_page"><primary sortas="SsoAuthService">com.google.code.AccountsSSO.gSingleSignOn.AuthService</primary></indexterm>
+  </refmeta>  <refnamediv>    <refname>com.google.code.AccountsSSO.gSingleSignOn.AuthService</refname>    <refpurpose></refpurpose>  </refnamediv>  <refsynopsisdiv role="synopsis">
+    <title role="synopsis.title">Methods</title>
+    <synopsis>
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.registerNewIdentity">registerNewIdentity</link> (IN  s      applicationContext,
+                     OUT o      objectPath);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.getIdentity">getIdentity</link>         (IN  u      id,
+                     IN  s      applicationContext,
+                     OUT o      objectPath,
+                     OUT a{sv}  identityData);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryMethods">queryMethods</link>        (OUT as     authMethods);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryMechanisms">queryMechanisms</link>     (IN  s      method,
+                     OUT as     mechanisms);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryIdentities">queryIdentities</link>     (IN  a{sv}  filter,
+                     OUT aa{sv} identities);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.clear">clear</link>               (OUT b      unnamed_arg0);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.backupStarts">backupStarts</link>        (OUT y      unnamed_arg0);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.backupFinished">backupFinished</link>      (OUT y      unnamed_arg0);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.restoreStarts">restoreStarts</link>       (OUT y      unnamed_arg0);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.restoreFinished">restoreFinished</link>     (OUT y      unnamed_arg0);
+</synopsis>
+  </refsynopsisdiv>
+<refsect1 role="desc" id="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-AuthService">
+  <title role="desc.title">Description</title>
+  <para></para>
+</refsect1>
+<refsect1 role="details" id="gdbus-methods-com.google.code.AccountsSSO.gSingleSignOn.AuthService">
+  <title role="details.title">Method Details</title>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.registerNewIdentity">
+  <title>The registerNewIdentity() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.registerNewIdentity"><primary sortas="SsoAuthService.registerNewIdentity">com.google.code.AccountsSSO.gSingleSignOn.AuthService.registerNewIdentity()</primary></indexterm>
+<programlisting>
+registerNewIdentity (IN  s applicationContext,
+                     OUT o objectPath);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>applicationContext</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT o <parameter>objectPath</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.getIdentity">
+  <title>The getIdentity() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.getIdentity"><primary sortas="SsoAuthService.getIdentity">com.google.code.AccountsSSO.gSingleSignOn.AuthService.getIdentity()</primary></indexterm>
+<programlisting>
+getIdentity (IN  u     id,
+             IN  s     applicationContext,
+             OUT o     objectPath,
+             OUT a{sv} identityData);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN u <parameter>id</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>IN s <parameter>applicationContext</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT o <parameter>objectPath</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT a{sv} <parameter>identityData</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryMethods">
+  <title>The queryMethods() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryMethods"><primary sortas="SsoAuthService.queryMethods">com.google.code.AccountsSSO.gSingleSignOn.AuthService.queryMethods()</primary></indexterm>
+<programlisting>
+queryMethods (OUT as authMethods);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT as <parameter>authMethods</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryMechanisms">
+  <title>The queryMechanisms() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryMechanisms"><primary sortas="SsoAuthService.queryMechanisms">com.google.code.AccountsSSO.gSingleSignOn.AuthService.queryMechanisms()</primary></indexterm>
+<programlisting>
+queryMechanisms (IN  s  method,
+                 OUT as mechanisms);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>method</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT as <parameter>mechanisms</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryIdentities">
+  <title>The queryIdentities() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryIdentities"><primary sortas="SsoAuthService.queryIdentities">com.google.code.AccountsSSO.gSingleSignOn.AuthService.queryIdentities()</primary></indexterm>
+<programlisting>
+queryIdentities (IN  a{sv}  filter,
+                 OUT aa{sv} identities);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN a{sv} <parameter>filter</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT aa{sv} <parameter>identities</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.clear">
+  <title>The clear() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.clear"><primary sortas="SsoAuthService.clear">com.google.code.AccountsSSO.gSingleSignOn.AuthService.clear()</primary></indexterm>
+<programlisting>
+clear (OUT b unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT b <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.backupStarts">
+  <title>The backupStarts() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.backupStarts"><primary sortas="SsoAuthService.backupStarts">com.google.code.AccountsSSO.gSingleSignOn.AuthService.backupStarts()</primary></indexterm>
+<programlisting>
+backupStarts (OUT y unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT y <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.backupFinished">
+  <title>The backupFinished() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.backupFinished"><primary sortas="SsoAuthService.backupFinished">com.google.code.AccountsSSO.gSingleSignOn.AuthService.backupFinished()</primary></indexterm>
+<programlisting>
+backupFinished (OUT y unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT y <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.restoreStarts">
+  <title>The restoreStarts() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.restoreStarts"><primary sortas="SsoAuthService.restoreStarts">com.google.code.AccountsSSO.gSingleSignOn.AuthService.restoreStarts()</primary></indexterm>
+<programlisting>
+restoreStarts (OUT y unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT y <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.restoreFinished">
+  <title>The restoreFinished() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.restoreFinished"><primary sortas="SsoAuthService.restoreFinished">com.google.code.AccountsSSO.gSingleSignOn.AuthService.restoreFinished()</primary></indexterm>
+<programlisting>
+restoreFinished (OUT y unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT y <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+</refsect1>
+</refentry>
+

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+]>
+<refentry id="gdbus-com.google.code.AccountsSSO.gSingleSignOn.Identity">
+  <refmeta>    <refentrytitle role="top_of_page" id="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-Identity.top_of_page">com.google.code.AccountsSSO.gSingleSignOn.Identity</refentrytitle>
+  <indexterm zone="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-Identity.top_of_page"><primary sortas="SsoIdentity">com.google.code.AccountsSSO.gSingleSignOn.Identity</primary></indexterm>
+  </refmeta>  <refnamediv>    <refname>com.google.code.AccountsSSO.gSingleSignOn.Identity</refname>    <refpurpose></refpurpose>  </refnamediv>  <refsynopsisdiv role="synopsis">
+    <title role="synopsis.title">Methods</title>
+    <synopsis>
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.requestCredentialsUpdate">requestCredentialsUpdate</link> (IN  s     message,
+                          OUT u     unnamed_arg1);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.getInfo">getInfo</link>                  (OUT a{sv} identityInfo);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.getAuthSession">getAuthSession</link>           (IN  s     method,
+                          OUT o     objectPath);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.verifyUser">verifyUser</link>               (IN  a{sv} params,
+                          OUT b     unnamed_arg1);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.verifySecret">verifySecret</link>             (IN  s     secret,
+                          OUT b     unnamed_arg1);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.remove">remove</link>                   ();
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.signOut">signOut</link>                  (OUT b     unnamed_arg0);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.store">store</link>                    (IN  a{sv} unnamed_arg0,
+                          OUT u     unnamed_arg1);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.addReference">addReference</link>             (IN  s     reference,
+                          OUT i     unnamed_arg1);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.removeReference">removeReference</link>          (IN  s     reference,
+                          OUT i     unnamed_arg1);
+</synopsis>
+  </refsynopsisdiv>
+  <refsect1 role="signal_proto">
+    <title role="signal_proto.title">Signals</title>
+    <synopsis>
+<link linkend="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-Identity.unregistered">unregistered</link> ();
+<link linkend="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-Identity.infoUpdated">infoUpdated</link>  (i unnamed_arg0);
+</synopsis>
+  </refsect1>
+<refsect1 role="desc" id="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-Identity">
+  <title role="desc.title">Description</title>
+  <para></para>
+</refsect1>
+<refsect1 role="details" id="gdbus-methods-com.google.code.AccountsSSO.gSingleSignOn.Identity">
+  <title role="details.title">Method Details</title>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.requestCredentialsUpdate">
+  <title>The requestCredentialsUpdate() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.requestCredentialsUpdate"><primary sortas="SsoIdentity.requestCredentialsUpdate">com.google.code.AccountsSSO.gSingleSignOn.Identity.requestCredentialsUpdate()</primary></indexterm>
+<programlisting>
+requestCredentialsUpdate (IN  s message,
+                          OUT u unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>message</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT u <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.getInfo">
+  <title>The getInfo() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.getInfo"><primary sortas="SsoIdentity.getInfo">com.google.code.AccountsSSO.gSingleSignOn.Identity.getInfo()</primary></indexterm>
+<programlisting>
+getInfo (OUT a{sv} identityInfo);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT a{sv} <parameter>identityInfo</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.getAuthSession">
+  <title>The getAuthSession() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.getAuthSession"><primary sortas="SsoIdentity.getAuthSession">com.google.code.AccountsSSO.gSingleSignOn.Identity.getAuthSession()</primary></indexterm>
+<programlisting>
+getAuthSession (IN  s method,
+                OUT o objectPath);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>method</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT o <parameter>objectPath</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.verifyUser">
+  <title>The verifyUser() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.verifyUser"><primary sortas="SsoIdentity.verifyUser">com.google.code.AccountsSSO.gSingleSignOn.Identity.verifyUser()</primary></indexterm>
+<programlisting>
+verifyUser (IN  a{sv} params,
+            OUT b     unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN a{sv} <parameter>params</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT b <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.verifySecret">
+  <title>The verifySecret() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.verifySecret"><primary sortas="SsoIdentity.verifySecret">com.google.code.AccountsSSO.gSingleSignOn.Identity.verifySecret()</primary></indexterm>
+<programlisting>
+verifySecret (IN  s secret,
+              OUT b unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>secret</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT b <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.remove">
+  <title>The remove() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.remove"><primary sortas="SsoIdentity.remove">com.google.code.AccountsSSO.gSingleSignOn.Identity.remove()</primary></indexterm>
+<programlisting>
+remove ();
+</programlisting>
+<para></para>
+<variablelist role="params">
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.signOut">
+  <title>The signOut() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.signOut"><primary sortas="SsoIdentity.signOut">com.google.code.AccountsSSO.gSingleSignOn.Identity.signOut()</primary></indexterm>
+<programlisting>
+signOut (OUT b unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>OUT b <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.store">
+  <title>The store() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.store"><primary sortas="SsoIdentity.store">com.google.code.AccountsSSO.gSingleSignOn.Identity.store()</primary></indexterm>
+<programlisting>
+store (IN  a{sv} unnamed_arg0,
+       OUT u     unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN a{sv} <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT u <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.addReference">
+  <title>The addReference() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.addReference"><primary sortas="SsoIdentity.addReference">com.google.code.AccountsSSO.gSingleSignOn.Identity.addReference()</primary></indexterm>
+<programlisting>
+addReference (IN  s reference,
+              OUT i unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>reference</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT i <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.removeReference">
+  <title>The removeReference() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-Identity.removeReference"><primary sortas="SsoIdentity.removeReference">com.google.code.AccountsSSO.gSingleSignOn.Identity.removeReference()</primary></indexterm>
+<programlisting>
+removeReference (IN  s reference,
+                 OUT i unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN s <parameter>reference</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT i <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+</refsect1>
+<refsect1 role="details" id="gdbus-signals-com.google.code.AccountsSSO.gSingleSignOn.Identity">
+  <title role="details.title">Signal Details</title>
+<refsect2 role="signal" id="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-Identity.unregistered">
+  <title>The "unregistered" signal</title>
+  <indexterm zone="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-Identity.unregistered"><primary sortas="SsoIdentity::unregistered">com.google.code.AccountsSSO.gSingleSignOn.Identity::unregistered</primary></indexterm>
+<programlisting>
+unregistered ();
+</programlisting>
+<para></para>
+<variablelist role="params">
+</variablelist>
+</refsect2>
+<refsect2 role="signal" id="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-Identity.infoUpdated">
+  <title>The "infoUpdated" signal</title>
+  <indexterm zone="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-Identity.infoUpdated"><primary sortas="SsoIdentity::infoUpdated">com.google.code.AccountsSSO.gSingleSignOn.Identity::infoUpdated</primary></indexterm>
+<programlisting>
+infoUpdated (i unnamed_arg0);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>i <parameter>unnamed_arg0</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+</refsect1>
+</refentry>
+

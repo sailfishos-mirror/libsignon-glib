@@ -1,0 +1,61 @@
+
+
+
+#include "signon-enum-types.h"
+#include "signon-errors.h"
+#include "signon-internals.h"
+#define g_intern_static_string(s) (s)
+
+/* enumerations from "signon-errors.h" */
+GType
+signon_error_get_type (void)
+{
+  static GType etype = 0;
+  if (etype == 0) {
+    static const GEnumValue values[] = {
+      { SIGNON_ERROR_UNKNOWN, SIGNOND_UNKNOWN_ERR_NAME, "unknown" },
+      { SIGNON_ERROR_INTERNAL_SERVER, SIGNOND_INTERNAL_SERVER_ERR_NAME, "internal-server" },
+      { SIGNON_ERROR_INTERNAL_COMMUNICATION, SIGNOND_INTERNAL_COMMUNICATION_ERR_NAME, "internal-communication" },
+      { SIGNON_ERROR_PERMISSION_DENIED, SIGNOND_PERMISSION_DENIED_ERR_NAME, "permission-denied" },
+      { SIGNON_ERROR_METHOD_NOT_KNOWN, SIGNOND_METHOD_NOT_KNOWN_ERR_NAME, "method-not-known" },
+      { SIGNON_ERROR_SERVICE_NOT_AVAILABLE, SIGNOND_SERVICE_NOT_AVAILABLE_ERR_NAME, "service-not-available" },
+      { SIGNON_ERROR_INVALID_QUERY, SIGNOND_INVALID_QUERY_ERR_NAME, "invalid-query" },
+      { SIGNON_ERROR_METHOD_NOT_AVAILABLE, SIGNOND_METHOD_NOT_AVAILABLE_ERR_NAME, "method-not-available" },
+      { SIGNON_ERROR_IDENTITY_NOT_FOUND, SIGNOND_IDENTITY_NOT_FOUND_ERR_NAME, "identity-not-found" },
+      { SIGNON_ERROR_STORE_FAILED, SIGNOND_STORE_FAILED_ERR_NAME, "store-failed" },
+      { SIGNON_ERROR_REMOVE_FAILED, SIGNOND_REMOVE_FAILED_ERR_NAME, "remove-failed" },
+      { SIGNON_ERROR_SIGNOUT_FAILED, SIGNOND_SIGNOUT_FAILED_ERR_NAME, "signout-failed" },
+      { SIGNON_ERROR_IDENTITY_OPERATION_CANCELED, SIGNOND_IDENTITY_OPERATION_CANCELED_ERR_NAME, "identity-operation-canceled" },
+      { SIGNON_ERROR_CREDENTIALS_NOT_AVAILABLE, SIGNOND_CREDENTIALS_NOT_AVAILABLE_ERR_NAME, "credentials-not-available" },
+      { SIGNON_ERROR_REFERENCE_NOT_FOUND, SIGNOND_REFERENCE_NOT_FOUND_ERR_NAME, "reference-not-found" },
+      { SIGNON_ERROR_MECHANISM_NOT_AVAILABLE, SIGNOND_MECHANISM_NOT_AVAILABLE_ERR_NAME, "mechanism-not-available" },
+      { SIGNON_ERROR_MISSING_DATA, SIGNOND_MISSING_DATA_ERR_NAME, "missing-data" },
+      { SIGNON_ERROR_INVALID_CREDENTIALS, SIGNOND_INVALID_CREDENTIALS_ERR_NAME, "invalid-credentials" },
+      { SIGNON_ERROR_NOT_AUTHORIZED, SIGNOND_NOT_AUTHORIZED_ERR_NAME, "not-authorized" },
+      { SIGNON_ERROR_WRONG_STATE, SIGNOND_WRONG_STATE_ERR_NAME, "wrong-state" },
+      { SIGNON_ERROR_OPERATION_NOT_SUPPORTED, SIGNOND_OPERATION_NOT_SUPPORTED_ERR_NAME, "operation-not-supported" },
+      { SIGNON_ERROR_NO_CONNECTION, SIGNOND_NO_CONNECTION_ERR_NAME, "no-connection" },
+      { SIGNON_ERROR_NETWORK, SIGNOND_NETWORK_ERR_NAME, "network" },
+      { SIGNON_ERROR_SSL, SIGNOND_SSL_ERR_NAME, "ssl" },
+      { SIGNON_ERROR_RUNTIME, SIGNOND_RUNTIME_ERR_NAME, "runtime" },
+      { SIGNON_ERROR_SESSION_CANCELED, SIGNOND_SESSION_CANCELED_ERR_NAME, "session-canceled" },
+      { SIGNON_ERROR_TIMED_OUT, SIGNOND_TIMED_OUT_ERR_NAME, "timed-out" },
+      { SIGNON_ERROR_USER_INTERACTION, SIGNOND_USER_INTERACTION_ERR_NAME, "user-interaction" },
+      { SIGNON_ERROR_OPERATION_FAILED, SIGNOND_OPERATION_FAILED_ERR_NAME, "operation-failed" },
+      { SIGNON_ERROR_ENCRYPTION_FAILED, SIGNOND_ENCRYPTION_FAILED_ERR_NAME, "encryption-failed" },
+      { SIGNON_ERROR_TOS_NOT_ACCEPTED, SIGNOND_TOS_NOT_ACCEPTED_ERR_NAME, "tos-not-accepted" },
+      { SIGNON_ERROR_FORGOT_PASSWORD, SIGNOND_FORGOT_PASSWORD_ERR_NAME, "forgot-password" },
+      { SIGNON_ERROR_METHOD_OR_MECHANISM_NOT_ALLOWED, SIGNOND_METHOD_OR_MECHANISM_NOT_ALLOWED_ERR_NAME, "method-or-mechanism-not-allowed" },
+      { SIGNON_ERROR_INCORRECT_DATE, SIGNOND_INCORRECT_DATE_ERR_NAME, "incorrect-date" },
+      { SIGNON_ERROR_USER_ERROR, SIGNOND_USER_ERROR_ERR_NAME, "user-error" },
+      { 0, NULL, NULL }
+    };
+    etype = g_enum_register_static (g_intern_static_string ("SignonError"), values);
+  }
+  return etype;
+}
+
+#define __SIGNON_ENUM_TYPES_C__
+
+
+

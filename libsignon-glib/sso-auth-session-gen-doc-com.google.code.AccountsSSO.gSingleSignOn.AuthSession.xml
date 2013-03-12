@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+]>
+<refentry id="gdbus-com.google.code.AccountsSSO.gSingleSignOn.AuthSession">
+  <refmeta>    <refentrytitle role="top_of_page" id="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.top_of_page">com.google.code.AccountsSSO.gSingleSignOn.AuthSession</refentrytitle>
+  <indexterm zone="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.top_of_page"><primary sortas="SsoAuthSession">com.google.code.AccountsSSO.gSingleSignOn.AuthSession</primary></indexterm>
+  </refmeta>  <refnamediv>    <refname>com.google.code.AccountsSSO.gSingleSignOn.AuthSession</refname>    <refpurpose></refpurpose>  </refnamediv>  <refsynopsisdiv role="synopsis">
+    <title role="synopsis.title">Methods</title>
+    <synopsis>
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.queryAvailableMechanisms">queryAvailableMechanisms</link> (IN  as    wantedMechanisms,
+                          OUT as    unnamed_arg1);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.process">process</link>                  (IN  a{sv} sessionDataVa,
+                          IN  s     mechanism,
+                          OUT a{sv} unnamed_arg2);
+<link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.cancel">cancel</link>                   ();
+</synopsis>
+  </refsynopsisdiv>
+  <refsect1 role="signal_proto">
+    <title role="signal_proto.title">Signals</title>
+    <synopsis>
+<link linkend="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.stateChanged">stateChanged</link> (i state,
+              s message);
+<link linkend="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.unregistered">unregistered</link> ();
+</synopsis>
+  </refsect1>
+<refsect1 role="desc" id="gdbus-interface-com-google-code-AccountsSSO-gSingleSignOn-AuthSession">
+  <title role="desc.title">Description</title>
+  <para></para>
+</refsect1>
+<refsect1 role="details" id="gdbus-methods-com.google.code.AccountsSSO.gSingleSignOn.AuthSession">
+  <title role="details.title">Method Details</title>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.queryAvailableMechanisms">
+  <title>The queryAvailableMechanisms() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.queryAvailableMechanisms"><primary sortas="SsoAuthSession.queryAvailableMechanisms">com.google.code.AccountsSSO.gSingleSignOn.AuthSession.queryAvailableMechanisms()</primary></indexterm>
+<programlisting>
+queryAvailableMechanisms (IN  as wantedMechanisms,
+                          OUT as unnamed_arg1);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN as <parameter>wantedMechanisms</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT as <parameter>unnamed_arg1</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.process">
+  <title>The process() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.process"><primary sortas="SsoAuthSession.process">com.google.code.AccountsSSO.gSingleSignOn.AuthSession.process()</primary></indexterm>
+<programlisting>
+process (IN  a{sv} sessionDataVa,
+         IN  s     mechanism,
+         OUT a{sv} unnamed_arg2);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>IN a{sv} <parameter>sessionDataVa</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>IN s <parameter>mechanism</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>OUT a{sv} <parameter>unnamed_arg2</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="method" id="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.cancel">
+  <title>The cancel() method</title>
+  <indexterm zone="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.cancel"><primary sortas="SsoAuthSession.cancel">com.google.code.AccountsSSO.gSingleSignOn.AuthSession.cancel()</primary></indexterm>
+<programlisting>
+cancel ();
+</programlisting>
+<para></para>
+<variablelist role="params">
+</variablelist>
+</refsect2>
+</refsect1>
+<refsect1 role="details" id="gdbus-signals-com.google.code.AccountsSSO.gSingleSignOn.AuthSession">
+  <title role="details.title">Signal Details</title>
+<refsect2 role="signal" id="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.stateChanged">
+  <title>The "stateChanged" signal</title>
+  <indexterm zone="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.stateChanged"><primary sortas="SsoAuthSession::stateChanged">com.google.code.AccountsSSO.gSingleSignOn.AuthSession::stateChanged</primary></indexterm>
+<programlisting>
+stateChanged (i state,
+              s message);
+</programlisting>
+<para></para>
+<variablelist role="params">
+<varlistentry>
+  <term><literal>i <parameter>state</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+<varlistentry>
+  <term><literal>s <parameter>message</parameter></literal>:</term>
+  <listitem><para></para></listitem>
+</varlistentry>
+</variablelist>
+</refsect2>
+<refsect2 role="signal" id="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.unregistered">
+  <title>The "unregistered" signal</title>
+  <indexterm zone="gdbus-signal-com-google-code-AccountsSSO-gSingleSignOn-AuthSession.unregistered"><primary sortas="SsoAuthSession::unregistered">com.google.code.AccountsSSO.gSingleSignOn.AuthSession::unregistered</primary></indexterm>
+<programlisting>
+unregistered ();
+</programlisting>
+<para></para>
+<variablelist role="params">
+</variablelist>
+</refsect2>
+</refsect1>
+</refentry>
+

@@ -31,11 +31,7 @@ BUILT_SOURCES = \
 	$(nodist_libsignon_glib_la_SOURCES) \
 	signon-errors-map.c
 
-CLEANFILES = \
-	$(BUILT_SOURCES) \
-	sso-auth-service-gen-doc-com.google.code.AccountsSSO.gSingleSignOn.AuthService.xml \
-	sso-auth-session-gen-doc-com.google.code.AccountsSSO.gSingleSignOn.AuthSession.xml \
-	sso-identity-gen-doc-com.google.code.AccountsSSO.gSingleSignOn.Identity.xml
+CLEANFILES = 
 
 libsignon_glib_la_SOURCES = \
 	signon-auth-service.h \
@@ -204,7 +200,7 @@ gir_DATA = $(INTROSPECTION_GIRS)
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
-CLEANFILES += $(gir_DATA) $(typelib_DATA)
+CLEANFILES += $(typelib_DATA)
 endif
 
 # Vala bindings
