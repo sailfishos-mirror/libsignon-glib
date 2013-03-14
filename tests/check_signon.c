@@ -346,7 +346,6 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                      "nonexisting",
                                                                      &err);
-
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
 
     g_clear_error(&err);
@@ -565,7 +564,7 @@ START_TEST(test_auth_session_process_failure)
     identity = signon_identity_new_from_db (1, NULL);
     fail_unless (identity != NULL, "Cannot create Identity object");
     auth_session = signon_auth_session_new (identity,
-                                            "nonexisting-method",
+                                            "ssotest",
                                             &error);
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
     fail_unless (error == NULL);
@@ -578,7 +577,7 @@ START_TEST(test_auth_session_process_failure)
 
     signon_auth_session_process_async (auth_session,
                                        session_data,
-                                       "mech1",
+                                       "mechx",
                                        NULL,
                                        test_auth_session_process_failure_cb,
                                        &error);
@@ -587,7 +586,7 @@ START_TEST(test_auth_session_process_failure)
     g_main_loop_run (main_loop);
     fail_unless (error != NULL);
     fail_unless (error->domain == SIGNON_ERROR);
-    fail_unless (error->code == SIGNON_ERROR_METHOD_NOT_KNOWN);
+    fail_unless (error->code == SIGNON_ERROR_MECHANISM_NOT_AVAILABLE);
 
     g_object_unref (auth_session);
     g_object_unref (identity);
