@@ -4,7 +4,7 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
- * Copyright (C) 2012 Intel Corporation.
+ * Copyright (C) 2012-2013 Intel Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
  * Contact: Jussi Laako <jussi.laako@linux.intel.com>
@@ -162,9 +162,9 @@ typedef void (*SignonIdentityVerifyCb) (SignonIdentity *self,
                                         gpointer user_data);
 
 void signon_identity_verify_secret(SignonIdentity *self,
-                                  const gchar *secret,
-                                  SignonIdentityVerifyCb cb,
-                                  gpointer user_data);
+                                   const gchar *secret,
+                                   SignonIdentityVerifyCb cb,
+                                   gpointer user_data);
 
 /**
  * SignonIdentityInfoCb:
@@ -181,26 +181,26 @@ typedef void (*SignonIdentityInfoCb) (SignonIdentity *self,
                                       gpointer user_data);
 
 void signon_identity_query_info(SignonIdentity *self,
-                               SignonIdentityInfoCb cb,
-                               gpointer user_data);
+                                SignonIdentityInfoCb cb,
+                                gpointer user_data);
 
 void signon_identity_remove(SignonIdentity *self,
-                           SignonIdentityRemovedCb cb,
-                           gpointer user_data);
+                            SignonIdentityRemovedCb cb,
+                            gpointer user_data);
 
 void signon_identity_signout(SignonIdentity *self,
-                            SignonIdentitySignedOutCb cb,
-                            gpointer user_data);
+                             SignonIdentitySignedOutCb cb,
+                             gpointer user_data);
 
 void signon_identity_add_reference(SignonIdentity *self,
-                            const gchar *reference,
-                            SignonIdentityReferenceAddedCb cb,
-                            gpointer user_data);
+                                   const gchar *reference,
+                                   SignonIdentityReferenceAddedCb cb,
+                                   gpointer user_data);
 
 void signon_identity_remove_reference(SignonIdentity *self,
-                            const gchar *reference,
-                            SignonIdentityReferenceRemovedCb cb,
-                            gpointer user_data);
+                                      const gchar *reference,
+                                      SignonIdentityReferenceRemovedCb cb,
+                                      gpointer user_data);
 
 typedef void (*SignonIdentitySessionReadyCb) (SignonAuthSession *self,
                                               GError *error,

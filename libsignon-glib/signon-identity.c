@@ -741,6 +741,11 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
     g_return_if_fail (info != NULL);
 
+    SignonIdentityPrivate *priv = self->priv;
+    if (priv->identity_info)
+        signon_identity_info_free (priv->identity_info);
+    priv->identity_info = signon_identity_info_copy (info);
+
     cb_data = g_slice_new0 (IdentityStoreCredentialsCbData);
     cb_data->self = self;
     cb_data->cb = cb;
@@ -1051,6 +1056,8 @@ identity_process_updated (SignonIdentity *self)
     signon_identity_info_free (priv->identity_info);
     priv->identity_info = NULL;
     priv->updated = FALSE;
+
+    DEBUG ("%s info freed, to be updated", __func__);
 }
 
 static void
