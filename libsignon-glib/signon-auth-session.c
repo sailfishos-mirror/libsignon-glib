@@ -857,7 +857,7 @@ signon_auth_session_complete (SignonAuthSession *self,
 
         priv->proxy =
             sso_auth_session_proxy_new_sync (connection,
-                                             G_DBUS_PROXY_FLAGS_NONE,
+                                             G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
                                              bus_name,
                                              object_path,
                                              priv->cancellable,

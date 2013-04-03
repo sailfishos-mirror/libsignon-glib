@@ -446,7 +446,7 @@ identity_registered (SignonIdentity *identity,
 
         priv->proxy =
             sso_identity_proxy_new_sync (connection,
-                                         G_DBUS_PROXY_FLAGS_NONE,
+                                         G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
                                          bus_name,
                                          object_path,
                                          priv->cancellable,

@@ -84,7 +84,7 @@ sso_auth_service_get_instance ()
     /* Create the object */
     sso_auth_service =
         sso_auth_service_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
-                                                 G_DBUS_PROXY_FLAGS_NONE,
+                                                 G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
                                                  SIGNOND_SERVICE,
                                                  SIGNOND_DAEMON_OBJECTPATH,
                                                  NULL,
