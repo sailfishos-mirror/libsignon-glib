@@ -22,6 +22,7 @@
  * 02110-1301 USA
  */
 
+#include <config.h>
 #include "signon-errors.h"
 #include "signon-internals.h"
 #include "sso-auth-service.h"
@@ -75,20 +76,34 @@ set_singleton (SsoAuthService *object)
 SsoAuthService *
 sso_auth_service_get_instance ()
 {
-    SsoAuthService *sso_auth_service;
+    SsoAuthService *sso_auth_service = NULL;
+    GDBusConnection *connection = NULL;
     GError *error = NULL;
 
     sso_auth_service = get_singleton ();
     if (sso_auth_service != NULL) return sso_auth_service;
 
+#ifdef USE_P2P
+    connection = g_dbus_connection_new_for_address_sync (SIGNOND_BUS_ADDRESS,
+                                                         G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT,
+                                                         NULL,
+                                                         NULL,
+                                                         &error);
+#else
+    connection = g_bus_get_sync (SIGNOND_BUS_TYPE, NULL, &error);
+#endif
     /* Create the object */
     sso_auth_service =
-        sso_auth_service_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
-                                                 G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-                                                 SIGNOND_SERVICE,
-                                                 SIGNOND_DAEMON_OBJECTPATH,
-                                                 NULL,
-                                                 &error);
+        sso_auth_service_proxy_new_sync (connection,
+                                         G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+#ifdef USE_P2P
+                                         NULL,
+#else
+                                         SIGNOND_SERVICE,
+#endif
+                                         SIGNOND_DAEMON_OBJECTPATH,
+                                         NULL,
+                                         &error);
     if (G_LIKELY (error == NULL)) {
         set_singleton (sso_auth_service);
     }

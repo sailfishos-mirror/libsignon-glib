@@ -33,6 +33,25 @@ PKG_CHECK_MODULES(
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
+AC_ARG_ENABLE(dbus-type,
+              [--enable-dbus-type=dbus-type specify daemon dbus type:
+                                  p2p(default): uses peer to peer dbus
+                                  session: uses session message bus
+                                  system: uses system message bus],
+              [enable_dbus_type=$enableval], [enable_dbus_type=p2p])
+
+echo "----------------------"
+echo " DBUS TYPE : '$enable_dbus_type'"
+echo "-----------------------"
+if test "x$enable_dbus_type" = "xp2p" ; then
+    AC_DEFINE(USE_P2P, [1], [Use peer to peer dbus])
+    AC_DEFINE(SIGNOND_BUS_ADDRESS, ["unix:abstract=gsignond"], [signond daemon server socket address])
+elif test "x$enable_dbus_type" = "xsession" ; then
+    AC_DEFINE(SIGNOND_BUS_TYPE, [G_BUS_TYPE_SESSION], [Use session bus])
+elif test "x$enable_dbus_type" = "xsystem" ; then
+    AC_DEFINE(SIGNOND_BUS_TYPE, [G_BUS_TYPE_SYSTEM], [Use system bus])
+fi
+
 # Build tests.
 
 CHECK_REQUIRED="check >= 0.9.4"
