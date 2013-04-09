@@ -34,10 +34,10 @@ AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
 AC_ARG_ENABLE(dbus-type,
-              [--enable-dbus-type=dbus-type specify daemon dbus type:
-                                  p2p(default): uses peer to peer dbus
-                                  session: uses session message bus
-                                  system: uses system message bus],
+              [  --enable-dbus-type=dbus-type specify daemon dbus type:
+                          p2p(default): uses peer to peer dbus
+                          session: uses session message bus
+                          system: uses system message bus],
               [enable_dbus_type=$enableval], [enable_dbus_type=p2p])
 
 echo "----------------------"
