@@ -280,6 +280,7 @@ signon_security_context_list_deconstruct_variant (GVariant *variant)
     {
         list = g_list_append (
             list, signon_security_context_deconstruct_variant (value));
+        g_variant_unref (value);
     }
 
     return list;
