@@ -33,4 +33,7 @@ git-changelog-hook: Makefile
 DISTCLEANFILES = \
 	$(pkgconfig_DATA)
 
+valgrind:
+	cd tests; make valgrind
+
 .PHONY:  git-changelog-hook

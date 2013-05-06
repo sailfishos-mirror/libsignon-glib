@@ -11,12 +11,16 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([libsignon-glib.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11 -Wall check-news nostdinc silent-rules subdir-objects])
+AM_INIT_AUTOMAKE([1.11 check-news nostdinc silent-rules subdir-objects -Wno-portability])
 
 AC_PROG_CC
 AC_PROG_CC_STDC
 AM_PROG_CC_C_O
 AM_PROG_AR
+AX_CHECK_GNU_MAKE
+if test "x$ifGNUmake" = "x#" ; then
+    AC_MSG_ERROR("GNUmake is required")
+fi
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
@@ -53,6 +57,13 @@ elif test "x$enable_dbus_type" = "xsystem" ; then
 fi
 
 # Build tests.
+PKG_CHECK_MODULES(GTestDBus, glib-2.0 >= 2.34, [gtestdbus=yes], [gtestdbus=no])
+AM_CONDITIONAL(HAVE_GTESTDBUS, [test x$gtestdbus = xyes])
+if test "x$gtestdbus" = xyes; then
+    AC_DEFINE(HAVE_GTESTDBUS, [1], [Define if GTestDBus exists.])
+else
+    AC_DEFINE(HAVE_GTESTDBUS, [0], [GTestDBus does not exist.])
+fi
 
 CHECK_REQUIRED="check >= 0.9.4"
 

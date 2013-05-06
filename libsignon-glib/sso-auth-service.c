@@ -52,6 +52,12 @@ get_singleton ()
 }
 
 static void
+g_thread_ref_free (GWeakRef *data)
+{
+    g_slice_free (GWeakRef, data);
+}
+
+static void
 set_singleton (SsoAuthService *object)
 {
     g_return_if_fail (IS_SSO_AUTH_SERVICE (object));
@@ -60,7 +66,8 @@ set_singleton (SsoAuthService *object)
 
     if (thread_objects == NULL)
     {
-        thread_objects = g_hash_table_new (g_direct_hash, g_direct_equal);
+        thread_objects = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+                NULL, (GDestroyNotify)g_thread_ref_free);
     }
 
     if (object != NULL)
@@ -72,6 +79,21 @@ set_singleton (SsoAuthService *object)
 
     g_mutex_unlock (&map_mutex);
 }
+
+static void
+_on_auth_service_destroyed (gpointer data, GObject *obj)
+{
+    (void)data;
+    (void)obj;
+    g_mutex_lock (&map_mutex);
+    if (thread_objects)
+    {
+        g_hash_table_unref (thread_objects);
+        thread_objects = NULL;
+    }
+    g_mutex_unlock (&map_mutex);
+}
+
 
 SsoAuthService *
 sso_auth_service_get_instance ()
@@ -104,6 +126,7 @@ sso_auth_service_get_instance ()
                                          SIGNOND_DAEMON_OBJECTPATH,
                                          NULL,
                                          &error);
+    g_object_weak_ref (G_OBJECT (sso_auth_service), _on_auth_service_destroyed, sso_auth_service);
     if (G_LIKELY (error == NULL)) {
         set_singleton (sso_auth_service);
     }

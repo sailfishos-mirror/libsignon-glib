@@ -297,14 +297,19 @@ signon_identity_dispose (GObject *object)
     if (priv->sessions)
         g_critical ("SignonIdentity: the list of AuthSessions MUST be empty");
 
-    g_free(priv->app_ctx);
-
     G_OBJECT_CLASS (signon_identity_parent_class)->dispose (object);
 }
 
 static void
 signon_identity_finalize (GObject *object)
 {
+    SignonIdentity *identity = SIGNON_IDENTITY (object);
+    if (identity->priv->app_ctx)
+    {
+        g_free(identity->priv->app_ctx);
+        identity->priv->app_ctx = NULL;
+    }
+
     G_OBJECT_CLASS (signon_identity_parent_class)->finalize (object);
 }
 
@@ -1245,6 +1250,7 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
                                     priv->cancellable,
                                     identity_info_reply,
                                     cb_data);
+        goto free_op_data;
     }
     else
     {
@@ -1254,9 +1260,9 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
             (cb_data->cb) (self, priv->identity_info, error, cb_data->user_data);
     }
 
-    if (priv->updated == TRUE)
-        g_slice_free (IdentityInfoCbData, cb_data);
+    g_slice_free (IdentityInfoCbData, cb_data);
 
+free_op_data:
     g_slice_free (IdentityVoidData, operation_data);
 }
 

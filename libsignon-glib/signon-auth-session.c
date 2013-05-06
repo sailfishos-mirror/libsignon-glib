@@ -173,6 +173,7 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
      * g_main_context_pop_thread_default: assertion `g_queue_peek_head (stack) == context' failed
      */
     g_simple_async_result_complete_in_idle (res_process);
+    g_object_unref (res_process);
     g_object_unref (self);
 }
 
@@ -192,6 +193,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         DEBUG ("AuthSessionError: %s", error->message);
         g_simple_async_result_set_from_error (res, error);
         g_simple_async_result_complete (res);
+        g_object_unref (res);
         return;
     }
 
@@ -204,6 +206,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
                                          SIGNON_ERROR_SESSION_CANCELED,
                                          "Authentication session was canceled");
         g_simple_async_result_complete (res);
+        g_object_unref (res);
         return;
     }
 
@@ -246,14 +249,11 @@ process_async_cb_wrapper (GObject *object, GAsyncResult *res,
             reply = signon_hash_table_from_variant (v_reply);
 
         cb_data->cb (self, reply, error, cb_data->user_data);
-        if (reply != NULL)
-            g_hash_table_unref (reply);
     }
     g_variant_unref (v_reply);
 
     g_slice_free (AuthSessionProcessCbData, cb_data);
     g_clear_error (&error);
-    g_object_unref (res);
 }
 
 static GQuark
@@ -324,6 +324,7 @@ signon_auth_session_dispose (GObject *object)
     if (priv->cancellable)
     {
         g_cancellable_cancel (priv->cancellable);
+        g_object_unref (priv->cancellable);
         priv->cancellable = NULL;
     }
 

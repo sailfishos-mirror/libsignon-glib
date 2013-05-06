@@ -156,6 +156,7 @@ signon_identity_info_new_from_variant (GVariant *variant)
         {
             g_hash_table_insert (info->methods, method, mechanisms);
         }
+        g_variant_unref (method_map);
     }
 
     if (g_variant_lookup (variant,
@@ -164,6 +165,7 @@ signon_identity_info_new_from_variant (GVariant *variant)
                       &owner))
     {
         info->owner = signon_security_context_deconstruct_variant (owner);
+        g_variant_unref (owner);
     }
 
     if (g_variant_lookup (variant,
@@ -173,6 +175,7 @@ signon_identity_info_new_from_variant (GVariant *variant)
     {
         info->access_control_list =
             signon_security_context_list_deconstruct_variant (acl);
+        g_variant_unref (acl);
     }
 
     g_variant_lookup (variant,
