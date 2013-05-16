@@ -61,6 +61,13 @@ typedef struct _MechanismCbData
     gchar *method;
 } MechanismCbData;
 
+typedef struct _IdentityCbData
+{
+    SignonAuthService *service;
+    SignonQueryIdentitiesCb cb;
+    gpointer userdata;
+} IdentityCbData;
+
 #define SIGNON_AUTH_SERVICE_PRIV(obj) (SIGNON_AUTH_SERVICE(obj)->priv)
 
 static void
@@ -145,7 +152,6 @@ auth_query_methods_cb (GObject *object, GAsyncResult *res,
     (data->cb)
         (data->service, value, error, data->userdata);
 
-    g_strfreev (value);
     if (error)
         g_error_free (error);
     g_slice_free (MethodCbData, data);
@@ -167,7 +173,6 @@ auth_query_mechanisms_cb (GObject *object, GAsyncResult *res,
     (data->cb)
         (data->service, data->method, value, error, data->userdata);
 
-    g_strfreev (value);
     if (error)
         g_error_free (error);
     g_free (data->method);
@@ -261,3 +266,97 @@ signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
                                             auth_query_mechanisms_cb,
                                             cb_data);
 }
+
+static void
+auth_query_identities_cb (GObject *object, GAsyncResult *res,
+                          gpointer user_data)
+{
+    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
+    IdentityCbData *data = (IdentityCbData *) user_data;
+    GVariant *value = NULL;
+    GError *error = NULL;
+    GVariantIter iter;
+    GVariant *identity_var;
+    IdentityList *identity_list;
+
+    g_return_if_fail (data != NULL);
+
+    sso_auth_service_call_query_identities_finish (proxy,
+                                                   &value,
+                                                   res,
+                                                   &error);
+
+    identity_list = g_list_alloc ();
+    g_variant_iter_init (&iter, value);
+    while (g_variant_iter_next (&iter, "@a{sv}", &identity_var))
+    {
+        identity_list = 
+            g_list_append (identity_list,
+                           signon_identity_info_new_from_variant (identity_var));
+        g_variant_unref (identity_var);
+    }
+    (data->cb)
+        (data->service, identity_list, error, data->userdata);
+
+    if (error)
+        g_error_free (error);
+    g_slice_free (IdentityCbData, data);
+}
+
+/**
+ * SignonQueryIdentitiesCb:
+ * @auth_service: the #SignonAuthService.
+ * @identities: (transfer full): #GList based list of #SignonIdentityInfo.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_auth_service_query_identities().
+ */
+
+/**
+ * signon_auth_service_query_identities:
+ * @auth_service: the #SignonAuthService.
+ * @filter: filter variant dictionary based on #GHashTable.
+ * @cb: (scope async): callback to be invoked.
+ * @user_data: user data.
+ */
+void
+signon_auth_service_query_identities (SignonAuthService *auth_service,
+                                      IdentityFilter *filter,
+                                      SignonQueryIdentitiesCb cb,
+                                      gpointer user_data)
+{
+    SignonAuthServicePrivate *priv;
+    GVariantBuilder builder;
+    GHashTableIter iter;
+    const gchar *key;
+    GVariant *value;
+    GVariant *filter_var;
+
+    g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
+    g_return_if_fail (cb != NULL);
+    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
+
+    IdentityCbData *cb_data;
+    cb_data = g_slice_new (IdentityCbData);
+    cb_data->service = auth_service;
+    cb_data->cb = cb;
+    cb_data->userdata = user_data;
+
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+    if (filter)
+    {
+        g_hash_table_iter_init (&iter, filter);
+        while (g_hash_table_iter_next (&iter,
+                                       (gpointer) &key,
+                                       (gpointer) &value))
+            g_variant_builder_add (&builder, "{sv}", key, value);
+    }
+    filter_var = g_variant_builder_end (&builder);
+
+    sso_auth_service_call_query_identities (priv->proxy,
+                                            filter_var,
+                                            priv->cancellable,
+                                            auth_query_identities_cb,
+                                            cb_data);
+}
+
