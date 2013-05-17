@@ -752,12 +752,12 @@ auth_session_query_mechanisms_reply (GObject *object, GAsyncResult *res,
                                                              &mechanisms,
                                                              res,
                                                              &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-    (cb_data->cb) (cb_data->self, mechanisms, error, cb_data->user_data);
+    if (SIGNON_IS_NOT_CANCELLED (error))
+    {
+        (cb_data->cb) (cb_data->self, mechanisms, error, cb_data->user_data);
+    }
 
-    if (error)
-        g_error_free (error);
-
+    g_clear_error (&error);
     g_slice_free (AuthSessionQueryAvailableMechanismsCbData, cb_data);
 }
 

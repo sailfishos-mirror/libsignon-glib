@@ -27,14 +27,10 @@
 
 #include <glib-object.h>
 
-#define SIGNON_RETURN_IF_CANCELLED(error) \
-    if (error != NULL && \
-        error->domain == G_IO_ERROR && \
-        error->code == G_IO_ERROR_CANCELLED) \
-    { \
-        g_error_free (error); \
-        return; \
-    }
+#define SIGNON_IS_NOT_CANCELLED(error) \
+        (error == NULL || \
+        error->domain != G_IO_ERROR || \
+        error->code != G_IO_ERROR_CANCELLED)
 
 G_GNUC_INTERNAL
 GValue *signon_gvalue_new (GType type);

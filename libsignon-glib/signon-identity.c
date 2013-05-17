@@ -537,9 +537,12 @@ identity_new_cb (GObject *object, GAsyncResult *res,
                                                         &object_path,
                                                         res,
                                                         &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-    identity_registered (identity, object_path, NULL, error);
-    g_free (object_path);
+    if (SIGNON_IS_NOT_CANCELLED (error))
+    {
+        identity_registered (identity, object_path, NULL, error);
+    }
+    if (object_path) g_free (object_path);
+    g_clear_error (&error);
 }
 
 static void
@@ -560,9 +563,12 @@ identity_new_from_db_cb (GObject *object, GAsyncResult *res,
                                                &identity_data,
                                                res,
                                                &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-    identity_registered (identity, object_path, identity_data, error);
-    g_free (object_path);
+    if (SIGNON_IS_NOT_CANCELLED (error))
+    {
+        identity_registered (identity, object_path, identity_data, error);
+    }
+    if (object_path) g_free (object_path);
+    g_clear_error (&error);
 }
 
 static void
@@ -880,7 +886,6 @@ identity_store_credentials_reply (GObject *object, GAsyncResult *res,
     SignonIdentityPrivate *priv = cb_data->self->priv;
 
     sso_identity_call_store_finish (proxy, &id, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
 
     if (error == NULL)
     {
@@ -896,7 +901,7 @@ identity_store_credentials_reply (GObject *object, GAsyncResult *res,
         priv->removed = FALSE;
     }
 
-    if (cb_data->cb)
+    if (SIGNON_IS_NOT_CANCELLED (error) && cb_data->cb)
     {
         (cb_data->cb) (cb_data->self, id, error, cb_data->user_data);
     }
@@ -918,9 +923,8 @@ identity_verify_reply (GObject *object, GAsyncResult *res,
     g_return_if_fail (cb_data->self != NULL);
 
     sso_identity_call_verify_secret_finish (proxy, &valid, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
 
-    if (cb_data->cb)
+    if (SIGNON_IS_NOT_CANCELLED (error) && cb_data->cb)
     {
         (cb_data->cb) (cb_data->self, valid, error, cb_data->user_data);
     }
@@ -1129,9 +1133,8 @@ identity_signout_reply (GObject *object, GAsyncResult *res,
     g_return_if_fail (cb_data->self->priv != NULL);
 
     sso_identity_call_sign_out_finish (proxy, &result, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
 
-    if (cb_data->cb)
+    if (SIGNON_IS_NOT_CANCELLED (error) && cb_data->cb)
     {
         (cb_data->cb) (cb_data->self, error, cb_data->user_data);
     }
@@ -1153,9 +1156,8 @@ identity_removed_reply (GObject *object, GAsyncResult *res,
     g_return_if_fail (cb_data->self->priv != NULL);
 
     sso_identity_call_remove_finish (proxy, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
 
-    if (cb_data->cb)
+    if (SIGNON_IS_NOT_CANCELLED (error) && cb_data->cb)
     {
         (cb_data->cb) (cb_data->self, error, cb_data->user_data);
     }
@@ -1182,13 +1184,15 @@ identity_info_reply(GObject *object, GAsyncResult *res,
     SignonIdentityPrivate *priv = cb_data->self->priv;
 
     sso_identity_call_get_info_finish (proxy, &identity_data, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-    priv->identity_info =
-        signon_identity_info_new_from_variant (identity_data);
-    if (identity_data != NULL)
-        g_variant_unref (identity_data);
 
-    if (cb_data->cb)
+    if (identity_data != NULL)
+    {
+        priv->identity_info =
+                signon_identity_info_new_from_variant (identity_data);
+        g_variant_unref (identity_data);
+    }
+
+    if (SIGNON_IS_NOT_CANCELLED (error) && cb_data->cb)
     {
         (cb_data->cb) (cb_data->self, priv->identity_info, error, cb_data->user_data);
     }
@@ -1533,20 +1537,21 @@ identity_get_auth_session_reply (GObject *object, GAsyncResult *res,
                                                &object_path,
                                                res,
                                                &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
 
     IdentitySessionCbData *cb_data = (IdentitySessionCbData *) userdata;
     g_return_if_fail (cb_data != NULL);
     g_return_if_fail (cb_data->cb != NULL);
 
-    (cb_data->cb) (cb_data->session,
-                   error,
-                   g_dbus_proxy_get_connection ((GDBusProxy *)proxy),
-                   g_dbus_proxy_get_name ((GDBusProxy *)proxy),
-                   object_path);
-
+    if (SIGNON_IS_NOT_CANCELLED (error))
+    {
+        (cb_data->cb) (cb_data->session,
+                error,
+                g_dbus_proxy_get_connection ((GDBusProxy *)proxy),
+                g_dbus_proxy_get_name ((GDBusProxy *)proxy),
+                object_path);
+    }
     g_slice_free (IdentitySessionCbData, cb_data);
-    g_free (object_path);
+    if (object_path) g_free (object_path);
     g_clear_error (&error);
 }
 
@@ -1565,17 +1570,18 @@ identity_session_ready_cb(gpointer object, const GError *error, gpointer user_da
 
     IdentitySessionCbData *cb_data = operation_data->cb_data;
     g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (cb_data->cb != NULL);
 
-    if (priv->removed == TRUE)
+    if (error)
+    {
+        (cb_data->cb) (cb_data->session, (GError *)error, NULL, NULL, NULL);
+    }
+    else if (priv->removed == TRUE)
     {
         GError *new_error = g_error_new (signon_error_quark(),
                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
                                          "Already removed from database.");
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (cb_data->session, new_error, NULL, NULL, NULL);
-        }
-
+        (cb_data->cb) (cb_data->session, new_error, NULL, NULL, NULL);
         g_error_free (new_error);
     }
     else
