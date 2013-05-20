@@ -89,7 +89,8 @@ signon_security_context_new_from_values (const gchar *system_context,
 SignonSecurityContext *
 signon_security_context_copy (const SignonSecurityContext *src_ctx)
 {
-    g_return_val_if_fail (src_ctx != NULL, NULL);
+    if (!src_ctx)
+        return NULL;
 
     return signon_security_context_new_from_values (src_ctx->sys_ctx,
                                                     src_ctx->app_ctx);
