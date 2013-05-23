@@ -1332,6 +1332,53 @@ START_TEST(test_unregistered_auth_session)
 }
 END_TEST
 
+void free_identity_info_cb (gpointer data)
+{
+    SignonIdentityInfo *info;
+
+    signon_identity_info_free (info);
+}
+
+void query_identities_cb (SignonAuthService *auth_service,
+    SignonIdentityList *identity_list, const GError *error, gpointer user_data)
+{
+    SignonIdentityList *iter = identity_list;
+
+    while (iter && !error)
+    {
+        SignonIdentityInfo *info = (SignonIdentityInfo *) iter->data;
+        const gchar *caption = signon_identity_info_get_caption (info);
+
+        g_print ("\tid=%d caption='%s'\n",
+                 signon_identity_info_get_id (info),
+                 caption);
+
+        fail_unless (g_strcmp0 (caption, "MI-6") == 0,
+                     "Wrong caption in identity");
+
+        iter = g_list_next (iter);
+    }
+    g_list_free_full (identity_list, free_identity_info_cb);
+
+    fail_unless (error == NULL, "There should be no error in callback");
+    _stop_mainloop ();
+}
+
+START_TEST(test_query_identities)
+{
+    g_debug("%s", G_STRFUNC);
+
+    SignonAuthService *asrv = signon_auth_service_new ();
+
+    signon_auth_service_query_identities (asrv, NULL, NULL, query_identities_cb, NULL);
+
+    g_timeout_add_seconds (5, test_quit_main_loop_cb, main_loop);
+    _run_mainloop ();
+
+    g_object_unref (asrv);
+}
+END_TEST
+
 static void
 test_regression_unref_process_cb (SignonAuthSession *self,
                                   GHashTable *reply,
@@ -1434,6 +1481,8 @@ signon_suite(void)
     tcase_add_test (tc_core, test_store_credentials_identity);
     tcase_add_test (tc_core, test_remove_identity);
     tcase_add_test (tc_core, test_info_identity);
+
+    tcase_add_test (tc_core, test_query_identities);
 
     tcase_add_test (tc_core, test_signout_identity);
     tcase_add_test (tc_core, test_unregistered_identity);

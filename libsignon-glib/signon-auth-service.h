@@ -74,11 +74,11 @@ typedef void (*SignonQueryMechanismCb) (SignonAuthService *auth_service,
                                         const GError *error,
                                         gpointer user_data);
 
-typedef GList IdentityList;
-typedef GHashTable IdentityFilter;
+typedef GList SignonIdentityList;
+typedef GHashTable SignonIdentityFilter;
 
 typedef void (*SignonQueryIdentitiesCb) (SignonAuthService *auth_service,
-                                         IdentityList *identities,
+                                         SignonIdentityList *identities,
                                          const GError *error,
                                          gpointer user_data);
 
@@ -94,7 +94,8 @@ void signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
                                            gpointer user_data);
 
 void signon_auth_service_query_identities (SignonAuthService *auth_service,
-                                           IdentityFilter *filter,
+                                           SignonIdentityFilter *filter,
+                                           const gchar *application_context,
                                            SignonQueryIdentitiesCb cb,
                                            gpointer user_data);
 

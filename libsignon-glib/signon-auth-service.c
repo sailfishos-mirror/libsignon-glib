@@ -276,7 +276,7 @@ auth_query_identities_cb (GObject *object, GAsyncResult *res,
     GError *error = NULL;
     GVariantIter iter;
     GVariant *identity_var;
-    IdentityList *identity_list;
+    SignonIdentityList *identity_list = NULL;
 
     g_return_if_fail (data != NULL);
 
@@ -285,14 +285,16 @@ auth_query_identities_cb (GObject *object, GAsyncResult *res,
                                                    res,
                                                    &error);
 
-    identity_list = g_list_alloc ();
-    g_variant_iter_init (&iter, value);
-    while (g_variant_iter_next (&iter, "@a{sv}", &identity_var))
+    if (value && !error)
     {
-        identity_list = 
-            g_list_append (identity_list,
-                           signon_identity_info_new_from_variant (identity_var));
-        g_variant_unref (identity_var);
+        g_variant_iter_init (&iter, value);
+        while (g_variant_iter_next (&iter, "@a{sv}", &identity_var))
+        {
+            identity_list = 
+                g_list_append (identity_list,
+                               signon_identity_info_new_from_variant (identity_var));
+            g_variant_unref (identity_var);
+        }
     }
     (data->cb)
         (data->service, identity_list, error, data->userdata);
@@ -315,12 +317,14 @@ auth_query_identities_cb (GObject *object, GAsyncResult *res,
  * signon_auth_service_query_identities:
  * @auth_service: the #SignonAuthService.
  * @filter: filter variant dictionary based on #GHashTable.
+ * @application_context: application security context, can be %NULL.
  * @cb: (scope async): callback to be invoked.
  * @user_data: user data.
  */
 void
 signon_auth_service_query_identities (SignonAuthService *auth_service,
-                                      IdentityFilter *filter,
+                                      SignonIdentityFilter *filter,
+                                      const gchar *application_context,
                                       SignonQueryIdentitiesCb cb,
                                       gpointer user_data)
 {
@@ -352,8 +356,12 @@ signon_auth_service_query_identities (SignonAuthService *auth_service,
     }
     filter_var = g_variant_builder_end (&builder);
 
+    if (!application_context)
+        application_context = "";
+
     sso_auth_service_call_query_identities (priv->proxy,
                                             filter_var,
+                                            application_context,
                                             priv->cancellable,
                                             auth_query_identities_cb,
                                             cb_data);

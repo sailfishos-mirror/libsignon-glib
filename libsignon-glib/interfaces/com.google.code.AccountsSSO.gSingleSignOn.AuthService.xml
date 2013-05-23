@@ -19,8 +19,9 @@
       <arg name="method" type="s" direction="in"/>
     </method>
     <method name="queryIdentities">
-      <arg name="identities" type="aa{sv}" direction="out"/>
       <arg name="filter" type="a{sv}" direction="in"/>
+      <arg name="applicationContext" type="s" direction="in"/>
+      <arg name="identities" type="aa{sv}" direction="out"/>
     </method>
     <method name="clear">
       <arg type="b" direction="out"/>
