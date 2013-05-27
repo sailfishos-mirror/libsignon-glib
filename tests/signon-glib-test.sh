@@ -2,8 +2,8 @@
 
 # Environment variables for the signon daemon
 export SSO_LOGGING_LEVEL=2
-export SSO_STORAGE_PATH="/tmp"
-export SSO_SECRET_PATH="/tmp"
+export SSO_STORAGE_PATH="/tmp/gsignond"
+export SSO_SECRET_PATH="/tmp/gsignond"
 export SSO_DAEMON_TIMEOUT=5
 export SSO_IDENTITY_TIMEOUT=5
 export SSO_AUTHSESSION_TIMEOUT=5
