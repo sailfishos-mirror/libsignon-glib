@@ -49,7 +49,8 @@ struct _SsoAuthServiceIface
   gboolean (*handle_query_identities) (
     SsoAuthService *object,
     GDBusMethodInvocation *invocation,
-    GVariant *arg_filter);
+    GVariant *arg_filter,
+    const gchar *arg_applicationContext);
 
   gboolean (*handle_query_mechanisms) (
     SsoAuthService *object,
@@ -221,6 +222,7 @@ gboolean sso_auth_service_call_query_mechanisms_sync (
 void sso_auth_service_call_query_identities (
     SsoAuthService *proxy,
     GVariant *arg_filter,
+    const gchar *arg_applicationContext,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
@@ -234,6 +236,7 @@ gboolean sso_auth_service_call_query_identities_finish (
 gboolean sso_auth_service_call_query_identities_sync (
     SsoAuthService *proxy,
     GVariant *arg_filter,
+    const gchar *arg_applicationContext,
     GVariant **out_identities,
     GCancellable *cancellable,
     GError **error);

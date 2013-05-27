@@ -363,9 +363,21 @@ static const _ExtendedGDBusArgInfo _sso_auth_service_method_info_query_identitie
   FALSE
 };
 
+static const _ExtendedGDBusArgInfo _sso_auth_service_method_info_query_identities_IN_ARG_applicationContext =
+{
+  {
+    -1,
+    "applicationContext",
+    "s",
+    NULL
+  },
+  FALSE
+};
+
 static const _ExtendedGDBusArgInfo * const _sso_auth_service_method_info_query_identities_IN_ARG_pointers[] =
 {
   &_sso_auth_service_method_info_query_identities_IN_ARG_filter,
+  &_sso_auth_service_method_info_query_identities_IN_ARG_applicationContext,
   NULL
 };
 
@@ -733,6 +745,7 @@ sso_auth_service_default_init (SsoAuthServiceIface *iface)
    * @object: A #SsoAuthService.
    * @invocation: A #GDBusMethodInvocation.
    * @arg_filter: Argument passed by remote caller.
+   * @arg_applicationContext: Argument passed by remote caller.
    *
    * Signal emitted when a remote caller is invoking the <link linkend="gdbus-method-com-google-code-AccountsSSO-gSingleSignOn-AuthService.queryIdentities">queryIdentities()</link> D-Bus method.
    *
@@ -748,8 +761,8 @@ sso_auth_service_default_init (SsoAuthServiceIface *iface)
     NULL,
     g_cclosure_marshal_generic,
     G_TYPE_BOOLEAN,
-    2,
-    G_TYPE_DBUS_METHOD_INVOCATION, G_TYPE_VARIANT);
+    3,
+    G_TYPE_DBUS_METHOD_INVOCATION, G_TYPE_VARIANT, G_TYPE_STRING);
 
   /**
    * SsoAuthService::handle-clear:
@@ -1292,6 +1305,7 @@ _out:
  * sso_auth_service_call_query_identities:
  * @proxy: A #SsoAuthServiceProxy.
  * @arg_filter: Argument to pass with the method invocation.
+ * @arg_applicationContext: Argument to pass with the method invocation.
  * @cancellable: (allow-none): A #GCancellable or %NULL.
  * @callback: A #GAsyncReadyCallback to call when the request is satisfied or %NULL.
  * @user_data: User data to pass to @callback.
@@ -1306,14 +1320,16 @@ void
 sso_auth_service_call_query_identities (
     SsoAuthService *proxy,
     GVariant *arg_filter,
+    const gchar *arg_applicationContext,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
   g_dbus_proxy_call (G_DBUS_PROXY (proxy),
     "queryIdentities",
-    g_variant_new ("(@a{sv})",
-                   arg_filter),
+    g_variant_new ("(@a{sv}s)",
+                   arg_filter,
+                   arg_applicationContext),
     G_DBUS_CALL_FLAGS_NONE,
     -1,
     cancellable,
@@ -1355,6 +1371,7 @@ _out:
  * sso_auth_service_call_query_identities_sync:
  * @proxy: A #SsoAuthServiceProxy.
  * @arg_filter: Argument to pass with the method invocation.
+ * @arg_applicationContext: Argument to pass with the method invocation.
  * @out_identities: (out): Return location for return parameter or %NULL to ignore.
  * @cancellable: (allow-none): A #GCancellable or %NULL.
  * @error: Return location for error or %NULL.
@@ -1369,6 +1386,7 @@ gboolean
 sso_auth_service_call_query_identities_sync (
     SsoAuthService *proxy,
     GVariant *arg_filter,
+    const gchar *arg_applicationContext,
     GVariant **out_identities,
     GCancellable *cancellable,
     GError **error)
@@ -1376,8 +1394,9 @@ sso_auth_service_call_query_identities_sync (
   GVariant *_ret;
   _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
     "queryIdentities",
-    g_variant_new ("(@a{sv})",
-                   arg_filter),
+    g_variant_new ("(@a{sv}s)",
+                   arg_filter,
+                   arg_applicationContext),
     G_DBUS_CALL_FLAGS_NONE,
     -1,
     cancellable,
