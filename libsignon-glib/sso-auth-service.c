@@ -106,11 +106,13 @@ sso_auth_service_get_instance ()
     if (sso_auth_service != NULL) return sso_auth_service;
 
 #ifdef USE_P2P
-    connection = g_dbus_connection_new_for_address_sync (SIGNOND_BUS_ADDRESS,
+    gchar *bus_address = g_strdup_printf (SIGNOND_BUS_ADDRESS, g_get_user_runtime_dir());
+    connection = g_dbus_connection_new_for_address_sync (bus_address,
                                                          G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT,
                                                          NULL,
                                                          NULL,
                                                          &error);
+    g_free (bus_address);
 #else
     connection = g_bus_get_sync (SIGNOND_BUS_TYPE, NULL, &error);
 #endif

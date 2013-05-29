@@ -49,21 +49,22 @@ echo " DBUS TYPE : '$enable_dbus_type'"
 echo "-----------------------"
 if test "x$enable_dbus_type" = "xp2p" ; then
     AC_DEFINE(USE_P2P, [1], [Use peer to peer dbus])
-    AC_DEFINE(SIGNOND_BUS_ADDRESS, ["unix:abstract=gsignond"], [signond daemon server socket address])
+    AC_DEFINE(SIGNOND_BUS_ADDRESS, ["unix:path=%s/gsignond/bus-sock"], [signond daemon server socket address])
 elif test "x$enable_dbus_type" = "xsession" ; then
     AC_DEFINE(SIGNOND_BUS_TYPE, [G_BUS_TYPE_SESSION], [Use session bus])
+
+    # Build tests.
+    PKG_CHECK_MODULES(GTestDBus, glib-2.0 >= 2.34, [gtestdbus=yes], [gtestdbus=no])
+    if test "x$gtestdbus" = xyes; then
+        AC_DEFINE(HAVE_GTESTDBUS, [1], [Define if GTestDBus exists.])
+    else
+        AC_DEFINE(HAVE_GTESTDBUS, [0], [GTestDBus does not exist.])
+    fi
 elif test "x$enable_dbus_type" = "xsystem" ; then
     AC_DEFINE(SIGNOND_BUS_TYPE, [G_BUS_TYPE_SYSTEM], [Use system bus])
 fi
 
-# Build tests.
-PKG_CHECK_MODULES(GTestDBus, glib-2.0 >= 2.34, [gtestdbus=yes], [gtestdbus=no])
 AM_CONDITIONAL(HAVE_GTESTDBUS, [test x$gtestdbus = xyes])
-if test "x$gtestdbus" = xyes; then
-    AC_DEFINE(HAVE_GTESTDBUS, [1], [Define if GTestDBus exists.])
-else
-    AC_DEFINE(HAVE_GTESTDBUS, [0], [GTestDBus does not exist.])
-fi
 
 CHECK_REQUIRED="check >= 0.9.4"
 
