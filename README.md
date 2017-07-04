@@ -23,7 +23,9 @@ Resources
 
 [API reference documentation](http://accounts-sso.gitlab.io/libsignon-glib/)
 
-[Official source code repository](https://gitlab.com/accounts-sso/libsignon-glib)
+[Source code repository](https://gitlab.com/accounts-sso/libsignon-glib)
+
+[Source code coverage](http://accounts-sso.gitlab.io/libsignon-glib/coverage/)
 
 [signond]: https://gitlab.com/accounts-sso/signond
 [check]: https://github.com/libcheck/check
