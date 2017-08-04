@@ -207,6 +207,17 @@ CLEANFILES += $(gir_DATA) $(typelib_DATA)
 endif
 
 # Vala bindings
+if ENABLE_VAPIGEN
+-include $(VAPIGEN_MAKEFILE)
+
+libsignon-glib.vapi: Signon-1.0.gir Signon-1.0.metadata
+
+VAPIGEN_VAPIS = libsignon-glib.vapi
+
+libsignon_glib_vapi_DEPS = gio-2.0
+libsignon_glib_vapi_METADATADIRS = $(srcdir)
+libsignon_glib_vapi_FILES = Signon-1.0.gir Signon-1.0.metadata
+
 vapidir = $(datadir)/vala/vapi
-dist_vapi_DATA = \
-	signon.vapi
+vapi_DATA = $(VAPIGEN_VAPIS)
+endif

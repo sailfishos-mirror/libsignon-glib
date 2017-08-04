@@ -466,7 +466,7 @@ signon_auth_session_get_method (SignonAuthSession *self)
 /**
  * SignonAuthSessionQueryAvailableMechanismsCb:
  * @self: the #SignonAuthSession.
- * @mechanisms: (transfer full) (type GStrv): list of available mechanisms.
+ * @mechanisms: (transfer full) (array zero-terminated=1): list of available mechanisms.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
  *
@@ -476,7 +476,7 @@ signon_auth_session_get_method (SignonAuthSession *self)
 /**
  * signon_auth_session_query_available_mechanisms:
  * @self: the #SignonAuthSession.
- * @wanted_mechanisms: a %NULL-terminated list of mechanisms supported by the client.
+ * @wanted_mechanisms: (array zero-terminated=1): a %NULL-terminated list of mechanisms supported by the client.
  * @cb: (scope async): a callback which will be called with the result.
  * @user_data: user data to be passed to the callback.
  *
@@ -563,7 +563,7 @@ signon_auth_session_process (SignonAuthSession *self,
  * @session_data: (transfer floating): a dictionary of parameters.
  * @mechanism: the authentication mechanism to be used.
  * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
- * @callback: (scope async): a callback which will be called when the
+ * @callback: a callback which will be called when the
  * authentication reply is available.
  * @user_data: user data to be passed to the callback.
  *

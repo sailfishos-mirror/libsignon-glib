@@ -11,7 +11,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([libsignon-glib.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11 -Wall check-news nostdinc silent-rules subdir-objects foreign])
+AM_INIT_AUTOMAKE([1.11 -Wall check-news nostdinc silent-rules subdir-objects foreign -Wno-portability])
 
 AC_PROG_CC
 AC_PROG_CC_STDC
@@ -22,6 +22,7 @@ LT_INIT([disable-static])
 
 # Gobject Introspection
 GOBJECT_INTROSPECTION_CHECK([1.30.0])
+VAPIGEN_CHECK()
 
 PKG_CHECK_MODULES(
     [DEPS],

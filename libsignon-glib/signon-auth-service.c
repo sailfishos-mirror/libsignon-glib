@@ -177,7 +177,7 @@ auth_query_mechanisms_cb (GObject *object, GAsyncResult *res,
 /**
  * SignonQueryMethodsCb:
  * @auth_service: the #SignonAuthService.
- * @methods: (transfer none) (type GStrv): list of available methods.
+ * @methods: (transfer none) (array zero-terminated=1): list of available methods.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
  *
@@ -219,7 +219,7 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
  * SignonQueryMechanismCb:
  * @auth_service: the #SignonAuthService.
  * @method: the authentication method being inspected.
- * @mechanisms: (transfer none) (type GStrv): list of available mechanisms.
+ * @mechanisms: (transfer none) (array zero-terminated=1): list of available mechanisms.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
  *

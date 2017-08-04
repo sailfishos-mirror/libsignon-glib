@@ -36,7 +36,7 @@
  *
  * An enumeration of errors that are possible from Signon.
  */
-#define SIGNON_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
+#define SIGNON_DBUS_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
 
 #include "signon-errors-map.c"
 

@@ -719,7 +719,7 @@ signon_identity_create_session(SignonIdentity *self,
  * signon_identity_store_credentials_with_info:
  * @self: the #SignonIdentity.
  * @info: the #SignonIdentityInfo data to store.
- * @cb: (scope async): callback.
+ * @cb: (scope async) (closure user_data): callback.
  * @user_data: user_data.
  *
  * Stores the data from @info into the identity.
@@ -760,10 +760,10 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
  * @store_secret: whether signond should store the password.
  * @methods: (transfer none) (element-type utf8 GStrv): methods.
  * @caption: caption.
- * @realms: (transfer none) (type GStrv): realms.
- * @access_control_list: (transfer none) (type GStrv): access control list.
+ * @realms: (transfer none) (array zero-terminated=1): realms.
+ * @access_control_list: (transfer none) (array zero-terminated=1): access control list.
  * @type: the type of the identity.
- * @cb: (scope async): callback.
+ * @cb: (scope async) (closure user_data): callback.
  * @user_data: user_data.
  *
  * Stores the given data into the identity.
@@ -1011,7 +1011,7 @@ identity_verify_data(SignonIdentity *self,
  * signon_identity_verify_secret:
  * @self: the #SignonIdentity.
  * @secret: the secret (password) to be verified.
- * @cb: (scope async): callback.
+ * @cb: (scope async) (closure user_data): callback.
  * @user_data: user_data.
  *
  * Verifies the given secret.
@@ -1355,7 +1355,7 @@ identity_void_operation(SignonIdentity *self,
 /**
  * signon_identity_remove:
  * @self: the #SignonIdentity.
- * @cb: (scope async): callback to be called when the operation has completed.
+ * @cb: (scope async) (closure user_data): callback to be called when the operation has completed.
  * @user_data: user_data to pass to the callback.
  *
  * Removes the corresponding credentials record from the database.
@@ -1382,7 +1382,7 @@ void signon_identity_remove(SignonIdentity *self,
 /**
  * signon_identity_signout:
  * @self: the #SignonIdentity.
- * @cb: (scope async): callback.
+ * @cb: (scope async) (closure user_data): callback.
  * @user_data: user_data.
  *
  * Asks signond to close all authentication sessions for this
@@ -1410,7 +1410,7 @@ void signon_identity_signout(SignonIdentity *self,
  * signon_identity_add_reference:
  * @self: the #SignonIdentity.
  * @reference: reference to be added
- * @cb: callback
+ * @cb: (scope async) (closure user_data): callback
  * @user_data: user_data.
  *
  * Adds named reference to identity
@@ -1432,7 +1432,7 @@ void signon_identity_add_reference(SignonIdentity *self,
  * signon_identity_remove_reference:
  * @self: the #SignonIdentity.
  * @reference: reference to be removed
- * @cb: callback
+ * @cb: (scope async) (closure user_data): callback
  * @user_data: user_data.
  *
  * Removes named reference from identity
@@ -1453,7 +1453,7 @@ void signon_identity_remove_reference(SignonIdentity *self,
 /**
  * signon_identity_query_info:
  * @self: the #SignonIdentity.
- * @cb: (scope async): callback.
+ * @cb: (scope async) (closure user_data): callback.
  * @user_data: user_data.
  *
  * Fetches the #SignonIdentityInfo data associated with this
