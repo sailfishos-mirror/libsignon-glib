@@ -567,14 +567,17 @@ identity_check_remote_registration (SignonIdentity *self)
     if (priv->registration_state != NOT_REGISTERED)
         return;
 
+    /* TODO: implement the application security context */
     if (priv->id != 0)
         sso_auth_service_call_get_identity (priv->auth_service_proxy,
                                             priv->id,
+                                            "*",
                                             priv->cancellable,
                                             identity_new_from_db_cb,
                                             self);
     else
         sso_auth_service_call_register_new_identity (priv->auth_service_proxy,
+                                                     "*",
                                                      priv->cancellable,
                                                      identity_new_cb,
                                                      self);
