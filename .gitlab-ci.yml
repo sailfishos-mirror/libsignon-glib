@@ -5,10 +5,26 @@ cache:
   paths:
   - apt-cache/
 
+variables:
+    LIB_PKGS: "autotools-dev gtk-doc-tools libglib2.0-dev libtool python3"
+    GIT_PKGS: "gobject-introspection libgirepository1.0-dev python3-gi python-gi-dev"
+    COVERAGE_PKGS: "signon-plugin-ssotest check dbus-test-runner lcov gcovr"
+    DAEMON_PKGS: "qt5-qmake qtbase5-dev qtchooser pkg-config libqt5sql5-sqlite doxygen libdbus-1-dev"
+    CI_TOOLS_PKGS: "unzip git"
+
 before_script:
   - export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
-  - apt-get update -yq && apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq autotools-dev gobject-introspection gtk-doc-tools libgirepository1.0-dev libglib2.0-dev libtool python3 python3-gi python-gi-dev signond-dev
-  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq signon-plugin-ssotest check dbus-test-runner lcov gcovr
+  - export PKG_CONFIG_PATH=/usr/lib64/pkgconfig
+  - apt-get update -yq && apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq $LIB_PKGS $GIT_PKGS
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq $COVERAGE_PKGS $DAEMON_PKGS $CI_TOOLS_PKGS
+  - cd ..
+  - git clone https://gitlab.com/accounts-sso/signond.git
+  - cd signond
+  - curl --header "PRIVATE-TOKEN:$PRIVATE_TOKEN" "https://gitlab.com/api/v4/projects/accounts-sso%2Fsignond/jobs/artifacts/master/download?job=build_amd64" -L -o artifacts.zip
+  - unzip artifacts.zip
+  - cd build
+  - make install
+  - cd ../../libsignon-glib
 
 build_amd64:
   stage: build
