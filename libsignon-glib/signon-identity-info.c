@@ -99,39 +99,39 @@ signon_identity_info_new_from_variant (GVariant *variant)
     DEBUG("%s: ", G_STRFUNC);
 
     g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_ID,
+                      "Id",
                       "u",
                       &info->id);
 
     g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_USERNAME,
+                      "UserName",
                       "s",
                       &info->username);
 
     if (g_variant_lookup (variant,
-                          SIGNOND_IDENTITY_INFO_SECRET,
+                          "Secret",
                           "s",
                           &info->secret))
     {
         g_variant_lookup (variant,
-                          SIGNOND_IDENTITY_INFO_STORESECRET,
+                          "StoreSecret",
                           "b",
                           &info->store_secret);
     }
 
     g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_CAPTION,
+                      "Caption",
                       "s",
                       &info->caption);
 
     g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_REALMS,
+                      "Realms",
                       "^as",
                       &info->realms);
 
     /* get the methods */
     if (g_variant_lookup (variant,
-                          SIGNOND_IDENTITY_INFO_AUTHMETHODS,
+                          "AuthMethods",
                           "@a{sas}",
                           &method_map))
     {
@@ -148,12 +148,12 @@ signon_identity_info_new_from_variant (GVariant *variant)
     }
 
     g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_ACL,
+                      "ACL",
                       "^as",
                       &info->access_control_list);
 
     g_variant_lookup (variant,
-                      SIGNOND_IDENTITY_INFO_TYPE,
+                      "Type",
                       "u",
                       &info->type);
 
@@ -173,23 +173,23 @@ signon_identity_info_to_variant (const SignonIdentityInfo *self)
     g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_ID,
+                           "Id",
                            g_variant_new_uint32 (self->id));
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_USERNAME,
+                           "UserName",
                            signon_variant_new_string (self->username));
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_SECRET,
+                           "Secret",
                            signon_variant_new_string (self->secret));
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_CAPTION,
+                           "Caption",
                            signon_variant_new_string (self->caption));
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_STORESECRET,
+                           "StoreSecret",
                            g_variant_new_boolean (self->store_secret));
 
     g_variant_builder_init (&method_builder,
@@ -206,13 +206,13 @@ signon_identity_info_to_variant (const SignonIdentityInfo *self)
     method_map = g_variant_builder_end (&method_builder);
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_AUTHMETHODS,
+                           "AuthMethods",
                            method_map);
 
     if (self->realms != NULL)
     {
         g_variant_builder_add (&builder, "{sv}",
-                               SIGNOND_IDENTITY_INFO_REALMS,
+                               "Realms",
                                g_variant_new_strv ((const gchar * const *)
                                                    self->realms,
                                                    -1));
@@ -221,14 +221,14 @@ signon_identity_info_to_variant (const SignonIdentityInfo *self)
     if (self->access_control_list != NULL)
     {
         g_variant_builder_add (&builder, "{sv}",
-                               SIGNOND_IDENTITY_INFO_ACL,
+                               "ACL",
                                g_variant_new_strv ((const gchar * const *)
                                                    self->access_control_list,
                                                    -1));
     }
 
     g_variant_builder_add (&builder, "{sv}",
-                           SIGNOND_IDENTITY_INFO_TYPE,
+                           "Type",
                            g_variant_new_int32 (self->type));
 
     return g_variant_builder_end (&builder);

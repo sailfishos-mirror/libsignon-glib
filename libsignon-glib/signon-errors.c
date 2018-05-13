@@ -26,7 +26,6 @@
 #include "signon-errors.h"
 #include "signon-enum-types.h"
 #include "signon-internals.h"
-#include "signoncommon.h"
 #include <gio/gio.h>
 
 /**
@@ -36,7 +35,6 @@
  *
  * An enumeration of errors that are possible from Signon.
  */
-#define SIGNON_DBUS_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
 
 #include "signon-errors-map.c"
 

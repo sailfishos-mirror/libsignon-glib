@@ -47,9 +47,6 @@
 #include "sso-auth-service.h"
 #include "sso-auth-session-gen.h"
 
-/* SignonAuthSessionState is defined in signoncommon.h */
-#include <signoncommon.h>
-
 static void signon_auth_session_proxy_if_init (SignonProxyInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT,
@@ -85,6 +82,31 @@ struct _SignonAuthSessionPrivate
 
     guint signal_state_changed;
     guint signal_unregistered;
+};
+
+enum SignonAuthSessionState {
+    SIGNON_AUTH_SESSION_STATE_NOT_STARTED = 0,   /**< No message. */
+    SIGNON_AUTH_SESSION_STATE_RESOLVING_HOST,    /**< Resolving remote server
+                                                   host name. */
+    SIGNON_AUTH_SESSION_STATE_CONNECTING,        /**< Connecting to remote
+                                                   server. */
+    SIGNON_AUTH_SESSION_STATE_SENDING_DATA,      /**< Sending data to remote
+                                                   server. */
+    SIGNON_AUTH_SESSION_STATE_WAITING_REPLY,     /**< Waiting reply from remote
+                                                   server. */
+    SIGNON_AUTH_SESSION_STATE_USER_PENDING,      /**< Waiting response from
+                                                   user. */
+    SIGNON_AUTH_SESSION_STATE_UI_REFRESHING,     /**< Refreshing ui request. */
+    SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,   /**< Waiting another process
+                                                   to start. */
+    SIGNON_AUTH_SESSION_STATE_STARTED,           /**< Authentication session is
+                                                   started. */
+    SIGNON_AUTH_SESSION_STATE_PROCESS_CANCELING, /**< Canceling.current
+                                                   process. */
+    SIGNON_AUTH_SESSION_STATE_PROCESS_DONE,      /**< Authentication
+                                                   completed. */
+    SIGNON_AUTH_SESSION_STATE_CUSTOM,            /**< Custom message. */
+    SIGNON_AUTH_SESSION_STATE_LAST
 };
 
 typedef struct _AuthSessionQueryAvailableMechanismsData
