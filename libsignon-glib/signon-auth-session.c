@@ -891,6 +891,7 @@ auth_session_check_remote_object(SignonAuthSession *self)
         sso_auth_service_call_get_auth_session_object_path (
             priv->auth_service_proxy,
             priv->id,
+            "*",
             priv->method_name,
             priv->cancellable,
             auth_session_get_object_path_reply,
