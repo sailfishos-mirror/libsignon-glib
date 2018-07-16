@@ -11,6 +11,7 @@ variables:
     COVERAGE_PKGS: "signon-plugin-ssotest check dbus-test-runner lcov gcovr"
     DAEMON_PKGS: "qt5-qmake qtbase5-dev qtchooser pkg-config libqt5sql5-sqlite doxygen libdbus-1-dev"
     CI_TOOLS_PKGS: "unzip git"
+    GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
   - export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
