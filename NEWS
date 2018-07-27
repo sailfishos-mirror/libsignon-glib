@@ -1,5 +1,16 @@
 libsignon-glib NEWS
 
+Version 1.15
+------------
+
+* Do not build-depend on signond
+* Update to the new signond D-Bus api with application context
+* Create the Vala file at build time
+* Handle the case where signond objects have been unregistered
+* Respect thread affinity in callbacks
+* Fix a memory leak
+* Tests: make tests more robust
+
 Version 1.14
 ------------
 
