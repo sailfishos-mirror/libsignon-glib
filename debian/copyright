@@ -1,7 +1,7 @@
 Format: http://dep.debian.net/deps/dep5
 Upstream-Name: libsignon-glib
 Upstream-Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
-Source: http://code.google.com/p/accounts-sso/
+Source: https://gitlab.com/accounts-sso/libsignon-glib
 
 Files: *
 Copyright: 2009-2011 Nokia Corporation
