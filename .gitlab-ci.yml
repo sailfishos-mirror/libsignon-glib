@@ -42,6 +42,7 @@ test_amd64:
   script:
     - ninja -C build test || (cat tests/test-suite.log && /bin/false)
     - ninja -C build coverage-html
+    - ninja -C build libsignon-glib-doc
   dependencies:
     - build_amd64
   artifacts:
