@@ -1,4 +1,4 @@
-image: ubuntu:xenial
+image: ubuntu:bionic
 
 cache:
   key: apt-cache
@@ -6,10 +6,10 @@ cache:
   - apt-cache/
 
 variables:
-    LIB_PKGS: "autotools-dev gtk-doc-tools libglib2.0-dev libtool python3"
-    GIT_PKGS: "gobject-introspection libgirepository1.0-dev python3-gi python-gi-dev"
+    LIB_PKGS: "meson gtk-doc-tools libglib2.0-dev python3"
+    GIT_PKGS: "gobject-introspection libgirepository1.0-dev python3-gi python-gi-dev valac"
     COVERAGE_PKGS: "signon-plugin-ssotest check dbus-test-runner lcov gcovr"
-    DAEMON_PKGS: "qt5-qmake qtbase5-dev qtchooser pkg-config libqt5sql5-sqlite doxygen libdbus-1-dev"
+    DAEMON_PKGS: "qt5-qmake qtbase5-dev qtchooser pkg-config libqt5sql5-sqlite doxygen libdbus-1-dev curl"
     CI_TOOLS_PKGS: "unzip git"
     GIT_SUBMODULE_STRATEGY: recursive
 
@@ -31,10 +31,8 @@ build_amd64:
   stage: build
   script:
     - export PYTHON=python3
-    - mkdir build
-    - cd build
-    - ../autogen.sh --enable-gtk-doc --enable-gcov --enable-debug --enable-python --prefix=/usr
-    - make -j 4
+    - meson build -Ddebug=true -Ddocumentation=true -Db_coverage=true
+    - ninja -C build
   artifacts:
     paths:
       - ./
@@ -42,9 +40,8 @@ build_amd64:
 test_amd64:
   stage: test
   script:
-    - cd build
-    - make check || (cat tests/test-suite.log && /bin/false)
-    - make coverage-html
+    - ninja -C build test || (cat tests/test-suite.log && /bin/false)
+    - ninja -C build coverage-html
   dependencies:
     - build_amd64
   artifacts:
@@ -55,7 +52,7 @@ pages:
   stage: deploy
   script:
     - mkdir public
-    - cp -a build/coveragereport public/coverage
+    - cp -a build/meson-logs/coveragereport public/coverage
     - cp -a build/docs/reference/html/* public/
   dependencies:
     - test_amd64

@@ -60,7 +60,7 @@ weak_ref_free(GWeakRef *ref)
 static void
 set_singleton (SsoAuthService *object)
 {
-    g_return_if_fail (IS_SSO_AUTH_SERVICE (object));
+    g_return_if_fail (SSO_IS_AUTH_SERVICE (object));
 
     g_mutex_lock (&map_mutex);
 

@@ -1,0 +1,5 @@
+option('tests', type : 'boolean', description : 'Build with test support')
+option('debug', type : 'boolean', value: false, description : 'Printing of debug messages')
+option('python', type : 'boolean', description : 'Build with python support')
+option('documentation', type : 'boolean', description : 'Generate the documentation of the library')
+option('introspection', type : 'boolean', description : 'Build with the GObject introspection support')

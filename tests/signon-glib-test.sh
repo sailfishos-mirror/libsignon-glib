@@ -19,8 +19,6 @@ else
     export G_SLICE=debug-blocks
 fi
 
-TEST_APP="$TESTDIR/signon-glib-test-wrapper.sh"
-
 # If dbus-test-runner exists, use it to run the tests in a separate D-Bus
 # session
 if command -v dbus-test-runner > /dev/null ; then
