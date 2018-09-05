@@ -43,23 +43,7 @@ G_DEFINE_TYPE (SignonAuthService, signon_auth_service, G_TYPE_OBJECT);
 struct _SignonAuthServicePrivate
 {
     SsoAuthService *proxy;
-    GCancellable *cancellable;
 };
-
-typedef struct _MethodCbData
-{
-    SignonAuthService *service;
-    SignonQueryMethodsCb cb;
-    gpointer userdata;
-} MethodCbData;
-
-typedef struct _MechanismCbData
-{
-    SignonAuthService *service;
-    SignonQueryMechanismCb cb;
-    gpointer userdata;
-    gchar *method;
-} MechanismCbData;
 
 #define SIGNON_AUTH_SERVICE_PRIV(obj) (SIGNON_AUTH_SERVICE(obj)->priv)
 
@@ -73,7 +57,6 @@ signon_auth_service_init (SignonAuthService *auth_service)
     auth_service->priv = priv;
 
     /* Create the proxy */
-    priv->cancellable = g_cancellable_new ();
     priv->proxy = sso_auth_service_get_instance ();
 }
 
@@ -82,13 +65,6 @@ signon_auth_service_dispose (GObject *object)
 {
     SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (object);
     SignonAuthServicePrivate *priv = auth_service->priv;
-
-    if (priv->cancellable)
-    {
-        g_cancellable_cancel (priv->cancellable);
-        g_object_unref (priv->cancellable);
-        priv->cancellable = NULL;
-    }
 
     if (priv->proxy)
     {
@@ -116,6 +92,66 @@ signon_auth_service_class_init (SignonAuthServiceClass *klass)
     object_class->finalize = signon_auth_service_finalize;
 }
 
+static void
+_signon_auth_service_finish_query_methods (GObject *source_object,
+                                           GAsyncResult *res,
+                                           gpointer user_data)
+{
+    SsoAuthService *proxy = NULL;
+    GTask *task = (GTask *)user_data;
+    gchar **methods_array = NULL;
+    GList *methods_list = NULL;
+    GError *error = NULL;
+
+    g_return_if_fail (SSO_IS_AUTH_SERVICE (source_object));
+    if (g_task_return_error_if_cancelled (task))
+        return;
+
+    proxy = SSO_AUTH_SERVICE (source_object);
+    if (sso_auth_service_call_query_methods_finish (proxy, &methods_array, res, &error))
+    {
+        int i;
+        for (i = 0; methods_array[i] != NULL; i++)
+        {
+            methods_list = g_list_append (methods_list, methods_array[i]);
+        }
+
+        g_task_return_pointer (task, methods_list, NULL);
+    } else {
+        g_task_return_error (task, error);
+    }
+}
+
+static void
+_signon_auth_service_finish_query_mechanisms (GObject *source_object,
+                                              GAsyncResult *res,
+                                              gpointer user_data)
+{
+    SsoAuthService *proxy = NULL;
+    GTask *task = (GTask *)user_data;
+    gchar **mechanisms_array = NULL;
+    GList *mechanisms_list = NULL;
+    GError *error = NULL;
+
+    g_return_if_fail (SSO_IS_AUTH_SERVICE (source_object));
+    if (g_task_return_error_if_cancelled (task))
+        return;
+
+    proxy = SSO_AUTH_SERVICE (source_object);
+    if (sso_auth_service_call_query_mechanisms_finish (proxy, &mechanisms_array, res, &error))
+    {
+        int i;
+        for (i = 0; mechanisms_array[i] != NULL; i++)
+        {
+            mechanisms_list = g_list_append (mechanisms_list, mechanisms_array[i]);
+        }
+
+        g_task_return_pointer (task, mechanisms_list, NULL);
+    } else {
+        g_task_return_error (task, error);
+    }
+}
+
 /**
  * signon_auth_service_new:
  *
@@ -129,135 +165,168 @@ signon_auth_service_new ()
     return g_object_new (SIGNON_TYPE_AUTH_SERVICE, NULL);
 }
 
-static void
-auth_query_methods_cb (GObject *object, GAsyncResult *res,
-                       gpointer user_data)
-{
-    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
-    MethodCbData *data = (MethodCbData*)user_data;
-    gchar **value = NULL;
-    GError *error = NULL;
-
-    g_return_if_fail (data != NULL);
-
-    sso_auth_service_call_query_methods_finish (proxy, &value,
-                                                res, &error);
-    (data->cb)
-        (data->service, value, error, data->userdata);
-
-    g_strfreev (value);
-    if (error)
-        g_error_free (error);
-    g_slice_free (MethodCbData, data);
-}
-
-static void
-auth_query_mechanisms_cb (GObject *object, GAsyncResult *res,
-                          gpointer user_data)
-{
-    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
-    MechanismCbData *data = (MechanismCbData*) user_data;
-    gchar **value = NULL;
-    GError *error = NULL;
-
-    g_return_if_fail (data != NULL);
-
-    sso_auth_service_call_query_mechanisms_finish (proxy, &value,
-                                                   res, &error);
-    (data->cb)
-        (data->service, data->method, value, error, data->userdata);
-
-    g_strfreev (value);
-    if (error)
-        g_error_free (error);
-    g_free (data->method);
-    g_slice_free (MechanismCbData, data);
-}
-
 /**
- * SignonQueryMethodsCb:
- * @auth_service: the #SignonAuthService.
- * @methods: (transfer none) (array zero-terminated=1): list of available methods.
- * @error: a #GError if an error occurred, %NULL otherwise.
- * @user_data: the user data that was passed when installing this callback.
- *
- * Callback to be passed to signon_auth_service_query_methods().
- */
-
-/**
- * signon_auth_service_query_methods:
- * @auth_service: the #SignonAuthService.
- * @cb: (scope async): callback to be invoked.
- * @user_data: user data.
+ * signon_auth_service_get_methods:
+ * @auth_service: a #SignonAuthService
+ * @cancellable: (nullable): a #GCancellable or %NULL
+ * @callback: a callback to execute upon completion
+ * @user_data: closure data for @callback
  *
  * Lists all the available methods.
+ *
+ * Since: 2.0
  */
-void
-signon_auth_service_query_methods (SignonAuthService *auth_service,
-                                   SignonQueryMethodsCb cb,
-                                   gpointer user_data)
+void signon_auth_service_get_methods (SignonAuthService *auth_service,
+                                      GCancellable *cancellable,
+                                      GAsyncReadyCallback callback,
+                                      gpointer user_data)
 {
-    SignonAuthServicePrivate *priv;
+    SignonAuthServicePrivate *priv = NULL;
+    GTask *task = NULL;
 
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
-    g_return_if_fail (cb != NULL);
+
     priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
-
-    MethodCbData *cb_data;
-    cb_data = g_slice_new (MethodCbData);
-    cb_data->service = auth_service;
-    cb_data->cb = cb;
-    cb_data->userdata = user_data;
-
-    sso_auth_service_call_query_methods (priv->proxy,
-                                         priv->cancellable,
-                                         auth_query_methods_cb,
-                                         cb_data);
+    task = g_task_new (auth_service, cancellable, callback, user_data);
+    sso_auth_service_call_query_methods (priv->proxy, cancellable, _signon_auth_service_finish_query_methods, task);
 }
 
 /**
- * SignonQueryMechanismCb:
- * @auth_service: the #SignonAuthService.
- * @method: the authentication method being inspected.
- * @mechanisms: (transfer none) (array zero-terminated=1): list of available mechanisms.
- * @error: a #GError if an error occurred, %NULL otherwise.
- * @user_data: the user data that was passed when installing this callback.
+ * signon_auth_service_get_methods_finish:
+ * @auth_service: a #SignonAuthService
+ * @result: a #GAsyncResult
+ * @error: a location for a #GError, or %NULL
  *
- * Callback to be passed to signon_auth_service_query_mechanisms().
+ * Completes an asynchronous request to signon_auth_service_get_methods().
+ *
+ * Returns: (element-type utf8) (transfer full): A list of available methods.
  */
+GList *signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
+                                               GAsyncResult *result,
+                                               GError **error)
+{
+    g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
+
+    return g_task_propagate_pointer (G_TASK (result), error);
+}
 
 /**
- * signon_auth_service_query_mechanisms:
- * @auth_service: the #SignonAuthService.
- * @method: the name of the method whose mechanisms must be
- * retrieved.
- * @cb: (scope async): callback to be invoked.
- * @user_data: user data.
+ * signon_auth_service_get_methods_sync:
+ * @auth_service: a #SignonAuthService
+ * @cancellable: (nullable): a #GCancellable or %NULL
+ * @error: a location for a #GError, or %NULL
  *
- * Lists all the available mechanisms.
+ * Lists all the available methods.
+ * This is a blocking version of signon_auth_service_get_methods().
+ *
+ * Returns: (element-type utf8) (transfer full): A list of available methods.
+ *
+ * Since: 2.0
  */
-void
-signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
-                                      const gchar *method,
-                                      SignonQueryMechanismCb cb,
-                                      gpointer user_data)
+GList *signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
+                                             GCancellable *cancellable,
+                                             GError **error)
 {
     SignonAuthServicePrivate *priv;
+    gchar **methods_array = NULL;
+    GList *methods_list = NULL;
+
+    g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
+
+    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
+    if (sso_auth_service_call_query_methods_sync (priv->proxy, &methods_array, cancellable, error))
+    {
+        int i;
+        for (i = 0; methods_array[i] != NULL; i++)
+        {
+            methods_list = g_list_append (methods_list, methods_array[i]);
+        }
+    }
+
+    return methods_list;
+}
+
+/**
+ * signon_auth_service_get_mechanisms:
+ * @auth_service: a #SignonAuthService
+ * @method: the name of the method whose mechanisms must be retrieved.
+ * @cancellable: (nullable): a #GCancellable or %NULL
+ * @callback: a callback to execute upon completion
+ * @user_data: closure data for @callback
+ *
+ * Lists all the available mechanisms.
+ *
+ * Since: 2.0
+ */
+void signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
+                                         const gchar *method,
+                                         GCancellable *cancellable,
+                                         GAsyncReadyCallback callback,
+                                         gpointer user_data)
+{
+    SignonAuthServicePrivate *priv = NULL;
+    GTask *task = NULL;
 
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
-    g_return_if_fail (cb != NULL);
+
     priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
+    task = g_task_new (auth_service, cancellable, callback, user_data);
+    sso_auth_service_call_query_mechanisms (priv->proxy, method, cancellable, _signon_auth_service_finish_query_mechanisms, task);
+}
 
-    MechanismCbData *cb_data;
-    cb_data = g_slice_new (MechanismCbData);
-    cb_data->service = auth_service;
-    cb_data->cb = cb;
-    cb_data->userdata = user_data;
-    cb_data->method = g_strdup (method);
+/**
+ * signon_auth_service_get_mechanisms_finish:
+ * @auth_service: a #SignonAuthService
+ * @result: a #GAsyncResult
+ * @error: a location for a #GError, or %NULL
+ *
+ * Completes an asynchronous request to signon_auth_service_get_mechanisms().
+ *
+ * Returns: (element-type utf8) (transfer full): A list of available mechanisms.
+ */
+GList *signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_service,
+                                                  GAsyncResult *result,
+                                                  GError **error)
+{
+    g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
-    sso_auth_service_call_query_mechanisms (priv->proxy,
-                                            method,
-                                            priv->cancellable,
-                                            auth_query_mechanisms_cb,
-                                            cb_data);
+    return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+/**
+ * signon_auth_service_get_mechanisms_sync:
+ * @auth_service: a #SignonAuthService
+ * @method: the name of the method whose mechanisms must be retrieved.
+ * @cancellable: (nullable): a #GCancellable or %NULL
+ * @error: a location for a #GError, or %NULL
+ *
+ * Lists all the available mechanisms.
+ * This is a blocking version of signon_auth_service_get_mechanisms().
+ *
+ * Returns: (element-type utf8) (transfer full): A list of available mechanisms.
+ *
+ * Since: 2.0
+ */
+GList *signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
+                                                const gchar *method,
+                                                GCancellable *cancellable,
+                                                GError **error)
+{
+    SignonAuthServicePrivate *priv;
+    gchar **mechanisms_array = NULL;
+    GList *mechanisms_list = NULL;
+
+    g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
+
+    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
+    if (sso_auth_service_call_query_mechanisms_sync (priv->proxy, method, &mechanisms_array, cancellable, error))
+    {
+        int i;
+        for (i = 0; mechanisms_array[i] != NULL; i++)
+        {
+            mechanisms_list = g_list_append (mechanisms_list, mechanisms_array[i]);
+        }
+    }
+
+    return mechanisms_list;
 }

@@ -112,12 +112,17 @@ START_TEST(test_init)
 END_TEST
 
 static void
-signon_query_methods_cb (SignonAuthService *auth_service, gchar **methods,
-                         GError *error, gpointer user_data)
+signon_query_methods_cb (GObject *source_object,
+                         GAsyncResult *res,
+                         gpointer user_data)
 {
+    SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (source_object);
+    GError *error = NULL;
+    GList *methods = signon_auth_service_get_methods_finish (auth_service, res, &error);
     if (error)
     {
         g_warning ("%s: %s", G_STRFUNC, error->message);
+        g_error_free (error);
         g_main_loop_quit (main_loop);
         fail();
     }
@@ -127,14 +132,13 @@ signon_query_methods_cb (SignonAuthService *auth_service, gchar **methods,
     fail_unless (g_strcmp0 (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (methods != NULL, "The methods does not exist");
 
-    while (*methods)
+    for (; methods != NULL; methods = methods->next)
     {
-        if (g_strcmp0 (*methods, "ssotest") == 0)
+        if (g_strcmp0 (methods->data, "ssotest") == 0)
         {
             has_ssotest = TRUE;
             break;
         }
-        methods++;
     }
     fail_unless (has_ssotest, "ssotest method does not exist");
 
@@ -152,19 +156,24 @@ START_TEST(test_query_methods)
     fail_unless (SIGNON_IS_AUTH_SERVICE (auth_service),
                  "Failed to initialize the AuthService.");
 
-    signon_auth_service_query_methods (auth_service, (SignonQueryMethodsCb)signon_query_methods_cb, "Hello");
+    signon_auth_service_get_methods (auth_service, NULL, signon_query_methods_cb, "Hello");
     g_main_loop_run (main_loop);
     end_test ();
 }
 END_TEST
 
 static void
-signon_query_mechanisms_cb (SignonAuthService *auth_service, gchar *method,
-        gchar **mechanisms, GError *error, gpointer user_data)
+signon_query_mechanisms_cb (GObject *source_object,
+                            GAsyncResult *res,
+                            gpointer user_data)
 {
+    SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (source_object);
+    GError *error = NULL;
+    GList *mechanisms = signon_auth_service_get_mechanisms_finish (auth_service, res, &error);
     if (error)
     {
         g_warning ("%s: %s", G_STRFUNC, error->message);
+        g_error_free (error);
         g_main_loop_quit (main_loop);
         fail();
     }
@@ -176,18 +185,16 @@ signon_query_mechanisms_cb (SignonAuthService *auth_service, gchar *method,
     fail_unless (strcmp (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (mechanisms != NULL, "The mechanisms does not exist");
 
-    while (*mechanisms)
+    for (; mechanisms != NULL; mechanisms = mechanisms->next)
     {
-        if (g_strcmp0 (*mechanisms, "mech1") == 0)
+        if (g_strcmp0 (mechanisms->data, "mech1") == 0)
             has_mech1 = TRUE;
 
-        if (g_strcmp0 (*mechanisms, "mech2") == 0)
+        if (g_strcmp0 (mechanisms->data, "mech2") == 0)
             has_mech2 = TRUE;
 
-        if (g_strcmp0 (*mechanisms, "mech3") == 0)
+        if (g_strcmp0 (mechanisms->data, "mech3") == 0)
             has_mech3 = TRUE;
-
-        mechanisms++;
     }
 
     fail_unless (has_mech1, "mech1 mechanism does not exist");
@@ -198,11 +205,13 @@ signon_query_mechanisms_cb (SignonAuthService *auth_service, gchar *method,
 }
 
 static void
-signon_query_mechanisms_cb_fail (SignonAuthService *auth_service,
-                                 gchar *method,
-                                 gchar **mechanisms,
-                                 GError *error, gpointer user_data)
+signon_query_mechanisms_cb_fail (GObject *source_object,
+                                 GAsyncResult *res,
+                                  gpointer user_data)
 {
+    SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (source_object);
+    GError *error = NULL;
+    GList *mechanisms = signon_auth_service_get_mechanisms_finish (auth_service, res, &error);
     fail_unless (error != NULL);
     fail_unless (mechanisms == NULL);
     fail_unless (error->domain == SIGNON_ERROR);
@@ -218,20 +227,22 @@ START_TEST(test_query_mechanisms)
     fail_unless (SIGNON_IS_AUTH_SERVICE (auth_service),
                  "Failed to initialize the AuthService.");
 
-    signon_auth_service_query_mechanisms (auth_service,
-                                          "ssotest",
-                                          (SignonQueryMechanismCb)signon_query_mechanisms_cb,
-                                          "Hello");
+    signon_auth_service_get_mechanisms (auth_service,
+                                        "ssotest",
+                                        NULL,
+                                        signon_query_mechanisms_cb,
+                                        "Hello");
     if(!main_loop)
         main_loop = g_main_loop_new (NULL, FALSE);
 
     g_main_loop_run (main_loop);
 
     /* Test a non existing method */
-    signon_auth_service_query_mechanisms (auth_service,
-                                          "non-existing",
-                                          (SignonQueryMechanismCb)signon_query_mechanisms_cb_fail,
-                                          "Hello");
+    signon_auth_service_get_mechanisms (auth_service,
+                                        "non-existing",
+                                        NULL,
+                                        signon_query_mechanisms_cb_fail,
+                                        "Hello");
     g_main_loop_run (main_loop);
     end_test ();
 }

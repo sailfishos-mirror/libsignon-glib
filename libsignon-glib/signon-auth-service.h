@@ -27,6 +27,7 @@
 #define _SIGNON_AUTH_SERVICE_H_
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -64,26 +65,31 @@ struct _SignonAuthService
 
 GType signon_auth_service_get_type (void) G_GNUC_CONST;
 
-typedef void (*SignonQueryMethodsCb) (SignonAuthService *auth_service,
-                                      gchar **methods,
-                                      const GError *error,
-                                      gpointer user_data);
-
-typedef void (*SignonQueryMechanismCb) (SignonAuthService *auth_service,
-                                        const gchar *method,
-                                        gchar **mechanisms,
-                                        const GError *error,
-                                        gpointer user_data);
-
 SignonAuthService *signon_auth_service_new ();
 
-void signon_auth_service_query_methods (SignonAuthService *auth_service,
-                                        SignonQueryMethodsCb cb,
-                                        gpointer user_data);
-void signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
-                                           const gchar *method,
-                                           SignonQueryMechanismCb cb,
-                                           gpointer user_data);
+void signon_auth_service_get_methods (SignonAuthService *auth_service,
+                                      GCancellable *cancellable,
+                                      GAsyncReadyCallback callback,
+                                      gpointer user_data);
+GList *signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
+                                               GAsyncResult *result,
+                                               GError **error);
+GList *signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
+                                             GCancellable *cancellable,
+                                             GError **error);
+
+void signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
+                                         const gchar *method,
+                                         GCancellable *cancellable,
+                                         GAsyncReadyCallback callback,
+                                         gpointer user_data);
+GList *signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_service,
+                                                  GAsyncResult *result,
+                                                  GError **error);
+GList *signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
+                                                const gchar *method,
+                                                GCancellable *cancellable,
+                                                GError **error);
 G_END_DECLS
 
 #endif /* _SIGNON_AUTH_SERVICE_H_ */
