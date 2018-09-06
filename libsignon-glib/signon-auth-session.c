@@ -109,24 +109,11 @@ enum SignonAuthSessionState {
     SIGNON_AUTH_SESSION_STATE_LAST
 };
 
-typedef struct _AuthSessionQueryAvailableMechanismsData
-{
-    gchar **wanted_mechanisms;
-    gpointer cb_data;
-} AuthSessionQueryAvailableMechanismsData;
-
 typedef struct _AuthSessionProcessData
 {
     GVariant *session_data;
     gchar *mechanism;
 } AuthSessionProcessData;
-
-typedef struct _AuthSessionQueryAvailableMechanismsCbData
-{
-    SignonAuthSession *self;
-    SignonAuthSessionQueryAvailableMechanismsCb cb;
-    gpointer user_data;
-} AuthSessionQueryAvailableMechanismsCbData;
 
 typedef struct _AuthSessionProcessCbData
 {
@@ -143,7 +130,7 @@ static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy, gpointer
 static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
 
 static void auth_session_set_id_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void auth_session_list_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
 static void auth_session_check_remote_object(SignonAuthSession *self);
@@ -450,47 +437,65 @@ signon_auth_session_get_method (SignonAuthSession *self)
 }
 
 /**
- * SignonAuthSessionQueryAvailableMechanismsCb:
- * @self: the #SignonAuthSession.
- * @mechanisms: (transfer full) (array zero-terminated=1): list of available mechanisms.
- * @error: a #GError if an error occurred, %NULL otherwise.
- * @user_data: the user data that was passed when installing this callback.
- *
- * Callback to be passed to signon_auth_session_query_available_mechanisms().
- */
-
-/**
- * signon_auth_session_query_available_mechanisms:
+ * signon_auth_session_list_available_mechanisms:
  * @self: the #SignonAuthSession.
  * @wanted_mechanisms: (array zero-terminated=1): a %NULL-terminated list of mechanisms supported by the client.
- * @cb: (scope async): a callback which will be called with the result.
+ * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
+ * @callback: a callback which will be called when the
+ * authentication reply is available.
  * @user_data: user data to be passed to the callback.
  *
  * Queries the mechanisms available for this authentication session. the result
  * will be the intersection between @wanted_mechanisms and the mechanisms
  * supported by the authentication plugin.
+ *
+ * Since: 2.0
  */
-void
-signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
-                                                const gchar **wanted_mechanisms,
-                                                SignonAuthSessionQueryAvailableMechanismsCb cb,
-                                                gpointer user_data)
+void signon_auth_session_list_available_mechanisms (SignonAuthSession *self,
+                                                    const gchar **wanted_mechanisms,
+                                                    GCancellable *cancellable,
+                                                    GAsyncReadyCallback callback,
+                                                    gpointer user_data)
 {
+    SignonAuthSessionPrivate *priv;
+    GTask *res;
+
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+    priv = self->priv;
 
-    AuthSessionQueryAvailableMechanismsCbData *cb_data = g_slice_new0 (AuthSessionQueryAvailableMechanismsCbData);
-    cb_data->self = self;
-    cb_data->cb = cb;
-    cb_data->user_data = user_data;
+    g_return_if_fail (priv != NULL);
 
-    AuthSessionQueryAvailableMechanismsData *operation_data = g_slice_new0 (AuthSessionQueryAvailableMechanismsData);
-    operation_data->wanted_mechanisms = g_strdupv ((gchar **)wanted_mechanisms);
-    operation_data->cb_data = cb_data;
+    res = g_task_new (self, cancellable, callback, user_data);
+    g_task_set_task_data (res, g_strdupv ((gchar**) wanted_mechanisms), (GDestroyNotify)g_strfreev);
+
+    priv->busy = TRUE;
 
     signon_proxy_call_when_ready (self,
                                   auth_session_object_quark(),
-                                  auth_session_query_available_mechanisms_ready_cb,
-                                  operation_data);
+                                  auth_session_list_available_mechanisms_ready_cb,
+                                  res);
+}
+
+/**
+ * signon_auth_session_list_available_mechanisms_finish:
+ * @self: the #SignonAuthSession.
+ * @res: A #GAsyncResult obtained from the #GAsyncReadyCallback passed to
+ * signon_auth_session_list_available_mechanisms().
+ * @error: return location for error, or %NULL.
+ *
+ * Collect the result of the signon_auth_session_list_available_mechanisms()
+ * operation.
+ *
+ * Returns: (transfer full) (array zero-terminated=1): a list of available
+ * mechanisms.
+ */
+gchar **signon_auth_session_list_available_mechanisms_finish (SignonAuthSession *self,
+                                                              GAsyncResult *res,
+                                                              GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (res, self), NULL);
+
+  return g_task_propagate_pointer (G_TASK (res), error);
 }
 
 /**
@@ -717,61 +722,64 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
 }
 
 static void
-auth_session_query_mechanisms_reply (GObject *object, GAsyncResult *res,
+auth_session_query_mechanisms_reply (GObject *object,
+                                     GAsyncResult *res,
                                      gpointer userdata)
 {
     SsoAuthSession *proxy = SSO_AUTH_SESSION (object);
     gchar **mechanisms = NULL;
     GError *error = NULL;
-    AuthSessionQueryAvailableMechanismsCbData *cb_data =
-        (AuthSessionQueryAvailableMechanismsCbData *)userdata;
-    g_return_if_fail (cb_data != NULL);
+    GTask *task = (GTask *)userdata;
+    g_return_if_fail (task != NULL);
+
+    if (g_task_return_error_if_cancelled (task))
+    {
+        g_object_unref (task);
+        return;
+    }
 
     sso_auth_session_call_query_available_mechanisms_finish (proxy,
                                                              &mechanisms,
                                                              res,
                                                              &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-    (cb_data->cb) (cb_data->self, mechanisms, error, cb_data->user_data);
-
     if (error)
-        g_error_free (error);
+    {
+        g_task_return_error (task, error);
+        g_object_unref (task);
+        return;
+    }
 
-    g_slice_free (AuthSessionQueryAvailableMechanismsCbData, cb_data);
+    g_task_return_pointer (task, mechanisms, (GDestroyNotify)g_strfreev);
+    g_object_unref (task);
 }
 
 static void
-auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error,
-                                                  gpointer user_data)
+auth_session_list_available_mechanisms_ready_cb (gpointer object,
+                                                 const GError *error,
+                                                 gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
     SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
     SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
-    AuthSessionQueryAvailableMechanismsData *operation_data =
-        (AuthSessionQueryAvailableMechanismsData *)user_data;
-    g_return_if_fail (operation_data != NULL);
-
-    AuthSessionQueryAvailableMechanismsCbData *cb_data = operation_data->cb_data;
-    g_return_if_fail (cb_data != NULL);
+    GTask *task = (GTask *)user_data;
+    g_return_if_fail (task != NULL);
 
     if (error)
     {
-        (cb_data->cb)
-            (self, NULL, error, cb_data->user_data);
-
-        g_slice_free (AuthSessionQueryAvailableMechanismsCbData, cb_data);
+        g_task_return_error (task, g_error_copy (error));
+        g_object_unref (task);
     }
     else
     {
         g_return_if_fail (priv->proxy != NULL);
         sso_auth_session_call_query_available_mechanisms (
             priv->proxy,
-            (const char **)operation_data->wanted_mechanisms,
-            priv->cancellable,
+            (const char **)g_task_get_task_data (task),
+            g_task_get_cancellable (task),
             auth_session_query_mechanisms_reply,
-            cb_data);
+            task);
 
         g_signal_emit (self,
                        auth_session_signals[STATE_CHANGED],
@@ -779,9 +787,6 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
                        SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
                        auth_session_process_pending_message);
     }
-
-    g_strfreev (operation_data->wanted_mechanisms);
-    g_slice_free (AuthSessionQueryAvailableMechanismsData, operation_data);
 }
 
 static void

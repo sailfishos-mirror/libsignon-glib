@@ -249,14 +249,17 @@ START_TEST(test_query_mechanisms)
 END_TEST
 
 static void
-test_auth_session_query_mechanisms_cb (SignonAuthSession *self,
-                                      gchar **mechanisms,
-                                      const GError *error,
-                                      gpointer user_data)
+test_auth_session_query_mechanisms_cb (GObject *source_object,
+                                       GAsyncResult *res,
+                                       gpointer user_data)
 {
+    SignonAuthSession *self = (SignonAuthSession *)source_object;
+    GError *error = NULL;
+    gchar **mechanisms = signon_auth_session_list_available_mechanisms_finish (self, res, &error);
     if (error)
     {
         g_warning ("%s: %s", G_STRFUNC, error->message);
+        g_error_free (error);
         g_main_loop_quit (main_loop);
         fail();
     }
@@ -299,10 +302,11 @@ START_TEST(test_auth_session_query_mechanisms)
     patterns[2] = g_strdup("mech3");
     patterns[3] = NULL;
 
-    signon_auth_session_query_available_mechanisms(auth_session,
-                                                  (const gchar**)patterns,
-                                                  test_auth_session_query_mechanisms_cb,
-                                                  (gpointer)patterns);
+    signon_auth_session_list_available_mechanisms (auth_session,
+                                                   (const gchar**)patterns,
+                                                   NULL,
+                                                   test_auth_session_query_mechanisms_cb,
+                                                   (gpointer)patterns);
     if(!main_loop)
         main_loop = g_main_loop_new (NULL, FALSE);
 
@@ -311,20 +315,22 @@ START_TEST(test_auth_session_query_mechanisms)
     g_free(patterns[2]);
     patterns[2] = NULL;
 
-    signon_auth_session_query_available_mechanisms(auth_session,
-                                                  (const gchar**)patterns,
-                                                  test_auth_session_query_mechanisms_cb,
-                                                  (gpointer)patterns);
+    signon_auth_session_list_available_mechanisms (auth_session,
+                                                   (const gchar**)patterns,
+                                                   NULL,
+                                                   test_auth_session_query_mechanisms_cb,
+                                                   (gpointer)patterns);
 
     g_main_loop_run (main_loop);
 
     g_free(patterns[1]);
     patterns[1] = NULL;
 
-    signon_auth_session_query_available_mechanisms(auth_session,
-                                                  (const gchar**)patterns,
-                                                  test_auth_session_query_mechanisms_cb,
-                                                  (gpointer)patterns);
+    signon_auth_session_list_available_mechanisms (auth_session,
+                                                   (const gchar**)patterns,
+                                                   NULL,
+                                                   test_auth_session_query_mechanisms_cb,
+                                                   (gpointer)patterns);
 
     g_main_loop_run (main_loop);
 
@@ -337,19 +343,23 @@ START_TEST(test_auth_session_query_mechanisms)
 END_TEST
 
 static void
-test_auth_session_query_mechanisms_nonexisting_cb (SignonAuthSession *self,
-                                                  gchar **mechanisms,
-                                                  const GError *error,
-                                                  gpointer user_data)
+test_auth_session_query_mechanisms_nonexisting_cb (GObject *source_object,
+                                                   GAsyncResult *res,
+                                                   gpointer user_data)
 {
+    SignonAuthSession *self = (SignonAuthSession *)source_object;
+    GError *error = NULL;
+    gchar **mechanisms = signon_auth_session_list_available_mechanisms_finish (self, res, &error);
     if (!error)
     {
+        g_strfreev (mechanisms);
         g_main_loop_quit (main_loop);
         fail();
         return;
     }
 
     g_warning ("%s: %s", G_STRFUNC, error->message);
+    g_error_free (error);
     g_main_loop_quit (main_loop);
 }
 
@@ -375,10 +385,11 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
     patterns[2] = g_strdup("mech3");
     patterns[3] = NULL;
 
-    signon_auth_session_query_available_mechanisms(auth_session,
-                                                  (const gchar**)patterns,
-                                                  test_auth_session_query_mechanisms_nonexisting_cb,
-                                                  (gpointer)patterns);
+    signon_auth_session_list_available_mechanisms (auth_session,
+                                                   (const gchar**)patterns,
+                                                   NULL,
+                                                   test_auth_session_query_mechanisms_nonexisting_cb,
+                                                   (gpointer)patterns);
     if(!main_loop)
         main_loop = g_main_loop_new (NULL, FALSE);
 
@@ -1331,8 +1342,9 @@ START_TEST(test_unregistered_auth_session)
     patterns[2] = g_strdup("mech3");
     patterns[3] = NULL;
 
-    signon_auth_session_query_available_mechanisms(as,
+    signon_auth_session_list_available_mechanisms(as,
                                                   (const gchar**)patterns,
+                                                  NULL,
                                                   test_auth_session_query_mechanisms_cb,
                                                   (gpointer)patterns);
     g_main_loop_run (main_loop);
