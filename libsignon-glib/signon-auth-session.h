@@ -148,15 +148,6 @@ SignonAuthSession *signon_auth_session_new(gint id,
 
 const gchar *signon_auth_session_get_method (SignonAuthSession *self);
 
-void signon_auth_session_list_available_mechanisms (SignonAuthSession *self,
-                                                    const gchar **wanted_mechanisms,
-                                                    GCancellable *cancellable,
-                                                    GAsyncReadyCallback callback,
-                                                    gpointer user_data);
-gchar **signon_auth_session_list_available_mechanisms_finish (SignonAuthSession *self,
-                                                              GAsyncResult *res,
-                                                              GError **error);
-
 void signon_auth_session_process (SignonAuthSession *self,
                                   GVariant *session_data,
                                   const gchar *mechanism,

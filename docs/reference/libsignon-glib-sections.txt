@@ -41,8 +41,6 @@ signon_auth_session_get_method
 signon_auth_session_new
 signon_auth_session_process
 signon_auth_session_process_finish
-signon_auth_session_list_available_mechanisms
-signon_auth_session_list_available_mechanisms_finish
 <SUBSECTION Private>
 SignonAuthSessionClass
 SignonAuthSessionPrivate

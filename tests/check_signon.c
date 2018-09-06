@@ -251,13 +251,15 @@ START_TEST(test_query_mechanisms)
 END_TEST
 
 static void
-test_auth_session_query_mechanisms_cb (GObject *source_object,
-                                       GAsyncResult *res,
-                                       gpointer user_data)
+test_auth_session_process2_async_cb (GObject *source_object,
+                                     GAsyncResult *res,
+                                     gpointer user_data)
 {
     SignonAuthSession *self = (SignonAuthSession *)source_object;
     GError *error = NULL;
-    gchar **mechanisms = signon_auth_session_list_available_mechanisms_finish (self, res, &error);
+    GVariant *reply = signon_auth_session_process_finish (self, res, &error);
+    gboolean ok;
+
     if (error)
     {
         g_warning ("%s: %s", G_STRFUNC, error->message);
@@ -266,146 +268,18 @@ test_auth_session_query_mechanisms_cb (GObject *source_object,
         fail();
     }
 
-    fail_unless (mechanisms != NULL, "The mechanisms does not exist");
+    fail_unless (reply != NULL, "Could not process the auth session");
 
-    gchar** patterns = (gchar**)user_data;
+    gchar* username2 = NULL;
 
-    int i = g_strv_length(mechanisms);
-    fail_unless( i == g_strv_length(patterns), "The number of obtained methods is wrong: %d %s", i);
+    ok = g_variant_lookup (reply, SIGNON_SESSION_DATA_USERNAME, "&s", &username2);
+    ck_assert (ok);
+    ck_assert_str_eq (username2, "test_username");
 
-    while ( i > 0 )
-    {
-        gchar* pattern = patterns[--i];
-        fail_unless(_contains(mechanisms, pattern), "The obtained mechanism list does not contain %s", pattern);
-    }
+    g_variant_unref (reply);
 
-    g_strfreev(mechanisms);
     g_main_loop_quit (main_loop);
 }
-
-START_TEST(test_auth_session_query_mechanisms)
-{
-    GError *err = NULL;
-
-    g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
-    fail_unless (idty != NULL, "Cannot create Iddentity object");
-
-    SignonAuthSession *auth_session = signon_identity_create_session(idty,
-                                                                     "ssotest",
-                                                                     &err);
-    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
-
-    g_clear_error(&err);
-
-    gchar* patterns[4];
-    patterns[0] = g_strdup("mech1");
-    patterns[1] = g_strdup("mech2");
-    patterns[2] = g_strdup("mech3");
-    patterns[3] = NULL;
-
-    signon_auth_session_list_available_mechanisms (auth_session,
-                                                   (const gchar**)patterns,
-                                                   NULL,
-                                                   test_auth_session_query_mechanisms_cb,
-                                                   (gpointer)patterns);
-    if(!main_loop)
-        main_loop = g_main_loop_new (NULL, FALSE);
-
-    g_main_loop_run (main_loop);
-
-    g_free(patterns[2]);
-    patterns[2] = NULL;
-
-    signon_auth_session_list_available_mechanisms (auth_session,
-                                                   (const gchar**)patterns,
-                                                   NULL,
-                                                   test_auth_session_query_mechanisms_cb,
-                                                   (gpointer)patterns);
-
-    g_main_loop_run (main_loop);
-
-    g_free(patterns[1]);
-    patterns[1] = NULL;
-
-    signon_auth_session_list_available_mechanisms (auth_session,
-                                                   (const gchar**)patterns,
-                                                   NULL,
-                                                   test_auth_session_query_mechanisms_cb,
-                                                   (gpointer)patterns);
-
-    g_main_loop_run (main_loop);
-
-    g_free(patterns[0]);
-    g_object_unref(auth_session);
-    g_object_unref(idty);
-
-    end_test ();
-}
-END_TEST
-
-static void
-test_auth_session_query_mechanisms_nonexisting_cb (GObject *source_object,
-                                                   GAsyncResult *res,
-                                                   gpointer user_data)
-{
-    SignonAuthSession *self = (SignonAuthSession *)source_object;
-    GError *error = NULL;
-    gchar **mechanisms = signon_auth_session_list_available_mechanisms_finish (self, res, &error);
-    if (!error)
-    {
-        g_strfreev (mechanisms);
-        g_main_loop_quit (main_loop);
-        fail();
-        return;
-    }
-
-    g_warning ("%s: %s", G_STRFUNC, error->message);
-    g_error_free (error);
-    g_main_loop_quit (main_loop);
-}
-
-START_TEST(test_auth_session_query_mechanisms_nonexisting)
-{
-    GError *err = NULL;
-
-    g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
-    fail_unless (idty != NULL, "Cannot create Iddentity object");
-
-    SignonAuthSession *auth_session = signon_identity_create_session(idty,
-                                                                     "nonexisting",
-                                                                     &err);
-
-    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
-
-    g_clear_error(&err);
-
-    gchar* patterns[4];
-    patterns[0] = g_strdup("mech1");
-    patterns[1] = g_strdup("mech2");
-    patterns[2] = g_strdup("mech3");
-    patterns[3] = NULL;
-
-    signon_auth_session_list_available_mechanisms (auth_session,
-                                                   (const gchar**)patterns,
-                                                   NULL,
-                                                   test_auth_session_query_mechanisms_nonexisting_cb,
-                                                   (gpointer)patterns);
-    if(!main_loop)
-        main_loop = g_main_loop_new (NULL, FALSE);
-
-    g_main_loop_run (main_loop);
-
-    g_free(patterns[0]);
-    g_free(patterns[1]);
-    g_free(patterns[2]);
-    g_object_unref(auth_session);
-    g_object_unref(idty);
-
-    end_test ();
-}
-END_TEST
 
 static void
 test_auth_session_states_cb (SignonAuthSession *self,
@@ -475,7 +349,7 @@ START_TEST(test_auth_session_process_async)
 
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new(NULL, NULL);
-    fail_unless (idty != NULL, "Cannot create Iddentity object");
+    fail_unless (idty != NULL, "Cannot create Identity object");
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                      "ssotest",
@@ -654,7 +528,6 @@ test_auth_session_process_after_store_start_session (GObject *source_object,
                                  NULL,
                                  test_auth_session_process_after_store_cb,
                                  NULL);
-    g_object_unref (session_data);
 }
 
 START_TEST(test_auth_session_process_after_store)
@@ -1328,7 +1201,7 @@ START_TEST(test_unregistered_auth_session)
                            SIGNON_SESSION_DATA_SECRET,
                            g_variant_new_string ("test_pw"));
 
-    session_data = g_variant_builder_end (&builder);
+    session_data = g_variant_ref_sink (g_variant_builder_end (&builder));
 
     signon_auth_session_process (as,
                                  session_data,
@@ -1339,7 +1212,6 @@ START_TEST(test_unregistered_auth_session)
     g_main_loop_run (main_loop);
 
     fail_unless (reply != NULL);
-    session_data = NULL;
 
     ok = g_variant_lookup (reply, SIGNON_SESSION_DATA_USERNAME, "&s", &username);
     ck_assert (ok);
@@ -1353,11 +1225,12 @@ START_TEST(test_unregistered_auth_session)
     patterns[2] = g_strdup("mech3");
     patterns[3] = NULL;
 
-    signon_auth_session_list_available_mechanisms(as,
-                                                  (const gchar**)patterns,
-                                                  NULL,
-                                                  test_auth_session_query_mechanisms_cb,
-                                                  (gpointer)patterns);
+    signon_auth_session_process (as,
+                                 session_data,
+                                 "mech1",
+                                 NULL,
+                                 test_auth_session_process2_async_cb,
+                                 NULL);
     g_main_loop_run (main_loop);
 
     g_object_unref (as);
@@ -1431,7 +1304,6 @@ START_TEST(test_regression_unref)
                                  NULL,
                                  test_regression_unref_process_cb,
                                  "Hi there!");
-    g_object_unref (session_data);
     g_main_loop_run (main_loop);
 
     end_test ();
@@ -1457,8 +1329,6 @@ signon_suite(void)
     tcase_add_test (tc_core, test_get_nonexisting_identity);
 
     tcase_add_test (tc_core, test_auth_session_creation);
-    tcase_add_test (tc_core, test_auth_session_query_mechanisms);
-    tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
     tcase_add_test (tc_core, test_auth_session_process_async);
     tcase_add_test (tc_core, test_auth_session_process_failure);
     tcase_add_test (tc_core, test_auth_session_process_after_store);
