@@ -163,12 +163,12 @@ void signon_auth_session_query_available_mechanisms(SignonAuthSession *self,
                                                     SignonAuthSessionQueryAvailableMechanismsCb cb,
                                                     gpointer user_data);
 
-void signon_auth_session_process_async (SignonAuthSession *self,
-                                        GVariant *session_data,
-                                        const gchar *mechanism,
-                                        GCancellable *cancellable,
-                                        GAsyncReadyCallback callback,
-                                        gpointer user_data);
+void signon_auth_session_process (SignonAuthSession *self,
+                                  GVariant *session_data,
+                                  const gchar *mechanism,
+                                  GCancellable *cancellable,
+                                  GAsyncReadyCallback callback,
+                                  gpointer user_data);
 GVariant *signon_auth_session_process_finish (SignonAuthSession *self,
                                               GAsyncResult *res,
                                               GError **error);

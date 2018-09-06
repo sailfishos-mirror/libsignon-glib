@@ -485,12 +485,12 @@ START_TEST(test_auth_session_process_async)
 
     session_data = g_variant_builder_end (&builder);
 
-    signon_auth_session_process_async (auth_session,
-                                       session_data,
-                                       "mech1",
-                                       NULL,
-                                       test_auth_session_process_async_cb,
-                                       &reply);
+    signon_auth_session_process (auth_session,
+                                 session_data,
+                                 "mech1",
+                                 NULL,
+                                 test_auth_session_process_async_cb,
+                                 &reply);
     main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
     fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
@@ -550,12 +550,12 @@ START_TEST(test_auth_session_process_failure)
 
     session_data = g_variant_builder_end (&builder);
 
-    signon_auth_session_process_async (auth_session,
-                                       session_data,
-                                       "mech1",
-                                       NULL,
-                                       test_auth_session_process_failure_cb,
-                                       &error);
+    signon_auth_session_process (auth_session,
+                                 session_data,
+                                 "mech1",
+                                 NULL,
+                                 test_auth_session_process_failure_cb,
+                                 &error);
 
     main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
@@ -634,12 +634,12 @@ test_auth_session_process_after_store_start_session(SignonIdentity *self,
 
     session_data = g_variant_new (g_variant_type_peek_string (G_VARIANT_TYPE_VARDICT), NULL);
 
-    signon_auth_session_process_async (auth_session,
-                                       session_data,
-                                       "mech1",
-                                       NULL,
-                                       test_auth_session_process_after_store_cb,
-                                       NULL);
+    signon_auth_session_process (auth_session,
+                                 session_data,
+                                 "mech1",
+                                 NULL,
+                                 test_auth_session_process_after_store_cb,
+                                 NULL);
     g_object_unref (session_data);
 }
 
@@ -1308,12 +1308,12 @@ START_TEST(test_unregistered_auth_session)
 
     session_data = g_variant_builder_end (&builder);
 
-    signon_auth_session_process_async (as,
-                                       session_data,
-                                       "mech1",
-                                       NULL,
-                                       test_auth_session_process_async_cb,
-                                       &reply);
+    signon_auth_session_process (as,
+                                 session_data,
+                                 "mech1",
+                                 NULL,
+                                 test_auth_session_process_async_cb,
+                                 &reply);
     g_main_loop_run (main_loop);
 
     fail_unless (reply != NULL);
@@ -1402,12 +1402,12 @@ START_TEST(test_regression_unref)
 
     session_data = g_variant_builder_end (&builder);
 
-    signon_auth_session_process_async (auth_session,
-                                       session_data,
-                                       "mech1",
-                                       NULL,
-                                       test_regression_unref_process_cb,
-                                       "Hi there!");
+    signon_auth_session_process (auth_session,
+                                 session_data,
+                                 "mech1",
+                                 NULL,
+                                 test_regression_unref_process_cb,
+                                 "Hi there!");
     g_object_unref (session_data);
     g_main_loop_run (main_loop);
 

@@ -494,7 +494,7 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
 }
 
 /**
- * signon_auth_session_process_async:
+ * signon_auth_session_process:
  * @self: the #SignonAuthSession.
  * @session_data: (transfer floating): a dictionary of parameters.
  * @mechanism: the authentication mechanism to be used.
@@ -513,12 +513,12 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
  * Since: 1.8
  */
 void
-signon_auth_session_process_async (SignonAuthSession *self,
-                                   GVariant *session_data,
-                                   const gchar *mechanism,
-                                   GCancellable *cancellable,
-                                   GAsyncReadyCallback callback,
-                                   gpointer user_data)
+signon_auth_session_process (SignonAuthSession *self,
+                             GVariant *session_data,
+                             const gchar *mechanism,
+                             GCancellable *cancellable,
+                             GAsyncReadyCallback callback,
+                             gpointer user_data)
 {
     SignonAuthSessionPrivate *priv;
     AuthSessionProcessData *process_data;
@@ -549,10 +549,10 @@ signon_auth_session_process_async (SignonAuthSession *self,
  * signon_auth_session_process_finish:
  * @self: the #SignonAuthSession.
  * @res: A #GAsyncResult obtained from the #GAsyncReadyCallback passed to
- * signon_auth_session_process_async().
+ * signon_auth_session_process().
  * @error: return location for error, or %NULL.
  *
- * Collect the result of the signon_auth_session_process_async() operation.
+ * Collect the result of the signon_auth_session_process() operation.
  *
  * Returns: a #GVariant of type %G_VARIANT_TYPE_VARDICT containing the
  * authentication reply.
