@@ -1,6 +1,8 @@
 project('libsignon-glib', 'c',
-    version: '1.15'
+    version: '2.0'
 )
+
+library_major = '2'
 
 gnome = import('gnome')
 pkg = import('pkgconfig')

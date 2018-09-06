@@ -110,8 +110,8 @@ libsignon_glib_lib = shared_library(
         '-Wl,--version-script,' + join_paths(meson.current_source_dir(), symbols_map)
     ],
     link_depends : symbols_map,
-    soversion: '1',
-    version: '1.0.0',
+    soversion: library_major,
+    version: library_major + '.0.0',
     install: true,
 )
 
@@ -148,7 +148,7 @@ if get_option('introspection')
     libsignon_glib_gir = gnome.generate_gir(
         libsignon_glib_lib,
         namespace: 'Signon',
-        nsversion: '1.0',
+        nsversion: library_major + '.0',
         sources: [
             libsignon_glib_public_sources,
             libsignon_glib_public_headers,
