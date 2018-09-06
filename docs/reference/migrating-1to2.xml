@@ -41,6 +41,11 @@
         signon_auth_session_process() as Asynchronous methods are the default
         way to use this API.
     </para>
+    <para>
+        signon_auth_session_query_available_mechanisms() has been removed and
+        can be replaced by signon_auth_service_get_mechanisms() with a manual
+        filtering if needed.
+    </para>
   </section>
   <section>
     <title>Changes in #SignonIdentity</title>
