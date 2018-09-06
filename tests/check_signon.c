@@ -613,34 +613,35 @@ test_auth_session_process_after_store_cb (GObject *source_object,
 }
 
 static void
-test_auth_session_process_after_store_start_session(SignonIdentity *self,
-                                                    guint32 id,
-                                                    const GError *error,
-                                                    gpointer user_data)
+test_auth_session_process_after_store_start_session (GObject *source_object,
+                                                     GAsyncResult *res,
+                                                     gpointer user_data)
 {
-    GError *err = NULL;
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
     GVariant *session_data = NULL;
+    guint32 id;
 
-    if (error != NULL)
-    {
+    if (!signon_identity_store_info_finish (self, res, &error)) {
         g_warning ("%s %d: %s", G_STRFUNC, __LINE__, error->message);
         fail();
         g_main_loop_quit (main_loop);
         return;
     }
 
+    id = signon_identity_get_id (self);
     fail_unless (id > 0);
 
     SignonAuthSession *auth_session =
         signon_identity_create_session (self,
                                         "ssotest",
-                                        &err);
+                                        &error);
 
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
-    if (err != NULL)
+    if (error != NULL)
     {
-        fail ("Got error: %s", err->message);
-        g_clear_error (&err);
+        fail ("Got error: %s", error->message);
+        g_clear_error (&error);
     }
 
     session_data = g_variant_new (g_variant_type_peek_string (G_VARIANT_TYPE_VARDICT), NULL);
@@ -672,10 +673,11 @@ START_TEST(test_auth_session_process_after_store)
     signon_identity_info_set_username (info, "Nice user");
     signon_identity_info_set_access_control_list (info, acl);
 
-    signon_identity_store_credentials_with_info (identity,
-                                                 info,
-                                                 test_auth_session_process_after_store_start_session,
-                                                 NULL);
+    signon_identity_store_info (identity,
+                                info,
+                                NULL,
+                                test_auth_session_process_after_store_start_session,
+                                NULL);
     g_main_loop_run (main_loop);
 
     g_object_unref (identity);
@@ -699,19 +701,21 @@ static void add_methods_to_identity_info (SignonIdentityInfo *info)
     signon_identity_info_set_method (info, "method3", mechanisms);
 }
 
-static void new_identity_store_credentials_cb(SignonIdentity *self,
-                                              guint32 id,
-                                              const GError *error,
-                                              gpointer user_data)
+static void new_identity_store_credentials_cb (GObject *source_object,
+                                               GAsyncResult *res,
+                                               gpointer user_data)
 {
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
     gint *new_id = user_data;
+    guint32 id;
 
-    if(error)
-    {
+    if (!signon_identity_store_info_finish (self, res, &error)) {
         g_warning ("%s %d: %s", G_STRFUNC, __LINE__, error->message);
         fail();
     }
 
+    id = signon_identity_get_id (self);
     fail_unless (id > 0);
 
     *new_id = id;
@@ -736,10 +740,11 @@ new_identity()
     signon_identity_info_set_caption (info, "caption");
     signon_identity_info_set_access_control_list (info, acl);
 
-    signon_identity_store_credentials_with_info (identity,
-                                                 info,
-                                                 new_identity_store_credentials_cb,
-                                                 &id);
+    signon_identity_store_info (identity,
+                                info,
+                                NULL,
+                                new_identity_store_credentials_cb,
+                                &id);
     signon_identity_info_free (info);
 
     if (id == 0)
@@ -803,17 +808,20 @@ START_TEST(test_get_nonexisting_identity)
 }
 END_TEST
 
-static void store_credentials_identity_cb(SignonIdentity *self,
-                                         guint32 id,
-                                         const GError *error,
-                                         gpointer user_data)
+static void store_credentials_identity_cb (GObject *source_object,
+                                           GAsyncResult *res,
+                                           gpointer user_data)
 {
-    if(error)
-    {
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
+    guint32 id;
+
+    if (!signon_identity_store_info_finish (self, res, &error)) {
         g_warning ("%s %d: %s", G_STRFUNC, __LINE__, error->message);
         fail();
     }
 
+    id = signon_identity_get_id (self);
     fail_unless (id > 0);
 
     if (user_data != NULL)
@@ -848,10 +856,11 @@ START_TEST(test_store_credentials_identity)
     signon_identity_info_set_caption (info, "caption");
     add_methods_to_identity_info (info);
 
-    signon_identity_store_credentials_with_info (idty,
-                                                 info,
-                                                 store_credentials_identity_cb,
-                                                 &last_id);
+    signon_identity_store_info (idty,
+                                info,
+                                NULL,
+                                store_credentials_identity_cb,
+                                &last_id);
     signon_identity_info_free (info);
 
     g_main_loop_run (main_loop);
@@ -861,13 +870,17 @@ START_TEST(test_store_credentials_identity)
 }
 END_TEST
 
-static void identity_verify_secret_cb(SignonIdentity *self,
-                                      gboolean valid,
-                                      const GError *error,
-                                      gpointer user_data)
+static void identity_verify_secret_cb (GObject *source_object,
+                                       GAsyncResult *res,
+                                       gpointer user_data)
 {
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
+    gboolean valid = signon_identity_verify_secret_finish (self, res, &error);
+
     fail_unless (error == NULL, "The callback returned error for proper secret");
     fail_unless (valid == TRUE, "The callback gives FALSE for proper secret");
+
     g_main_loop_quit((GMainLoop *)user_data);
 }
 
@@ -891,17 +904,19 @@ START_TEST(test_verify_secret_identity)
     signon_identity_info_set_access_control_list (info, acl);
     add_methods_to_identity_info (info);
 
-    signon_identity_store_credentials_with_info (idty,
-                                                 info,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
+    signon_identity_store_info (idty,
+                                info,
+                                NULL,
+                                store_credentials_identity_cb,
+                                NULL);
     signon_identity_info_free (info);
     g_main_loop_run (main_loop);
 
-    signon_identity_verify_secret(idty,
-                                 secret,
-                                 identity_verify_secret_cb,
-                                 main_loop);
+    signon_identity_verify_secret (idty,
+                                   secret,
+                                   NULL,
+                                   identity_verify_secret_cb,
+                                   main_loop);
 
     g_main_loop_run (main_loop);
 
@@ -910,19 +925,23 @@ START_TEST(test_verify_secret_identity)
 }
 END_TEST
 
-static void identity_remove_cb(SignonIdentity *self, const GError *error, gpointer user_data)
+static void identity_remove_cb (GObject *source_object,
+                                GAsyncResult *res,
+                                gpointer user_data)
 {
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
 
     g_warning (" %s ", __func__);
-     if (error)
-     {
-        g_warning ("Error: %s ", error->message);
-        fail_if (user_data == NULL, "There should be no error in callback");
-     }
-    else
-    {
+    if (signon_identity_remove_finish (self, res, &error)) {
         g_warning ("No error");
         fail_if (user_data != NULL, "The callback must return an error");
+    }
+    else
+    {
+        g_warning ("Error: %s ", error->message);
+        g_error_free (error);
+        fail_if (user_data == NULL, "There should be no error in callback");
     }
 
     g_main_loop_quit(main_loop);
@@ -940,7 +959,7 @@ START_TEST(test_remove_identity)
     /*
      * Try to remove non-stored idetnity
      * */
-    signon_identity_remove(idty, identity_remove_cb, NULL);
+    signon_identity_remove(idty, NULL, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
 
     /*
@@ -950,14 +969,14 @@ START_TEST(test_remove_identity)
     gint id = new_identity();
     SignonIdentity *idty2 = signon_identity_new_from_db (id);
 
-    signon_identity_remove(idty2, identity_remove_cb, NULL);
+    signon_identity_remove(idty2, NULL, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
 
     /*
      * Try to remove already removed
      * */
 
-    signon_identity_remove(idty2, identity_remove_cb, GINT_TO_POINTER(TRUE));
+    signon_identity_remove(idty2, NULL, identity_remove_cb, GINT_TO_POINTER(TRUE));
 
     g_object_unref (idty);
     g_object_unref (idty2);
@@ -965,20 +984,26 @@ START_TEST(test_remove_identity)
 }
 END_TEST
 
-static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *info, const GError *error, gpointer user_data)
+static void identity_info_cb (GObject *source_object,
+                              GAsyncResult *res,
+                              gpointer user_data)
 {
-     if (error)
-     {
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
+    SignonIdentityInfo *info = signon_identity_query_info_finish (self, res, &error);
+
+    if (error)
+    {
         g_warning ("%s: Error: %s ", __func__, error->message);
         fail_if (info != NULL, "Error: %s ", error->message);
         g_main_loop_quit(main_loop);
         return;
-     }
+    }
 
-     g_warning ("No error");
+    g_warning ("No error");
 
-     SignonIdentityInfo **pattern_ptr = (SignonIdentityInfo **)user_data;
-     SignonIdentityInfo *pattern = NULL;
+    SignonIdentityInfo **pattern_ptr = (SignonIdentityInfo **)user_data;
+    SignonIdentityInfo *pattern = NULL;
 
      if (pattern_ptr)
          pattern = (*pattern_ptr);
@@ -1064,7 +1089,7 @@ START_TEST(test_info_identity)
     /*
      * Try to get_info for non-stored idetnity
      * */
-    signon_identity_query_info (idty, identity_info_cb, &info);
+    signon_identity_query_info (idty, NULL, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
     info = signon_identity_info_new ();
@@ -1074,10 +1099,11 @@ START_TEST(test_info_identity)
     signon_identity_info_set_access_control_list (info, acl);
     add_methods_to_identity_info (info);
 
-    signon_identity_store_credentials_with_info (idty,
-                                                 info,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
+    signon_identity_store_info (idty,
+                                info,
+                                NULL,
+                                store_credentials_identity_cb,
+                                NULL);
     signon_identity_info_free (info);
 
     g_main_loop_run (main_loop);
@@ -1088,14 +1114,14 @@ START_TEST(test_info_identity)
     signon_identity_info_set_caption (info, "caption");
     add_methods_to_identity_info (info);
 
-    signon_identity_query_info (idty, identity_info_cb, &info);
+    signon_identity_query_info (idty, NULL, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
     gint id = signon_identity_info_get_id (info);
     fail_unless (id != 0);
     SignonIdentity *idty2 = signon_identity_new_from_db (id);
 
-    signon_identity_query_info (idty2, identity_info_cb, &info);
+    signon_identity_query_info (idty2, NULL, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
     /*
@@ -1105,24 +1131,25 @@ START_TEST(test_info_identity)
     signon_identity_info_set_username (info, "James Bond_2nd version");
     signon_identity_info_set_caption (info, "caption_2nd version");
 
-    signon_identity_store_credentials_with_info (idty2,
-                                                 info,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
+    signon_identity_store_info (idty2,
+                                info,
+                                NULL,
+                                store_credentials_identity_cb,
+                                NULL);
     g_main_loop_run (main_loop);
 
-    signon_identity_query_info (idty, identity_info_cb, &info);
+    signon_identity_query_info (idty, NULL, identity_info_cb, &info);
     g_main_loop_run (main_loop);
     /*
      * Try to remove existing identity and
      * have a look what will happen
      * */
-    signon_identity_remove(idty2, identity_remove_cb, NULL);
+    signon_identity_remove(idty2, NULL, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
 
-    signon_identity_query_info (idty2, identity_info_cb, NULL);
+    signon_identity_query_info (idty2, NULL, identity_info_cb, NULL);
     g_main_loop_run (main_loop);
-    signon_identity_query_info (idty, identity_info_cb, NULL);
+    signon_identity_query_info (idty, NULL, identity_info_cb, NULL);
     g_main_loop_run (main_loop);
 
     signon_identity_info_free (info);
@@ -1132,16 +1159,21 @@ START_TEST(test_info_identity)
 }
 END_TEST
 
-static void identity_signout_cb (SignonIdentity *self,
-                                const GError *error,
-                                gpointer user_data)
+static void identity_signout_cb (GObject *source_object,
+                                 GAsyncResult *res,
+                                 gpointer user_data)
 {
-    if (error)
-        g_warning ("%s: %s", G_STRFUNC, error->message);
-    else
+    SignonIdentity *self = (SignonIdentity *)source_object;
+    GError *error = NULL;
+    if (signon_identity_sign_out_finish (self, res, &error))
         g_warning ("%s: No error", G_STRFUNC);
+    else
+    {
+        g_warning ("%s: %s", G_STRFUNC, error->message);
+        fail_unless (error == NULL, "There should be no error in callback");
+        g_error_free (error);
+    }
 
-    fail_unless (error == NULL, "There should be no error in callback");
     g_main_loop_quit (main_loop);
 }
 
@@ -1165,12 +1197,13 @@ START_TEST(test_signout_identity)
     SignonIdentityInfo *info = create_standard_info();
     main_loop = g_main_loop_new (NULL, FALSE);
 
-    signon_identity_store_credentials_with_info (idty,
-                                                 info,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
+    signon_identity_store_info (idty,
+                                info,
+                                NULL,
+                                store_credentials_identity_cb,
+                                NULL);
     g_main_loop_run (main_loop);
-    signon_identity_query_info (idty, identity_info_cb, &info);
+    signon_identity_query_info (idty, NULL, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
     gint id = signon_identity_info_get_id (info);
@@ -1195,14 +1228,14 @@ START_TEST(test_signout_identity)
 
     gint counter = 0;
 
-    g_signal_connect (idty, "signout",
+    g_signal_connect (idty, "signed-out",
                       G_CALLBACK(identity_signout_signal_cb), &counter);
-    g_signal_connect (idty2, "signout",
+    g_signal_connect (idty2, "signed-out",
                       G_CALLBACK(identity_signout_signal_cb), &counter);
     g_object_add_weak_pointer (G_OBJECT (as1), &as1_sentinel);
     g_object_add_weak_pointer (G_OBJECT (as2), &as2_sentinel);
 
-    signon_identity_signout (idty, identity_signout_cb, NULL);
+    signon_identity_sign_out (idty, NULL, identity_signout_cb, NULL);
     g_main_loop_run (main_loop);
 
     fail_unless (counter == 2, "Lost some of SIGNOUT signals");
@@ -1227,10 +1260,11 @@ START_TEST(test_unregistered_identity)
     SignonIdentityInfo *info = create_standard_info();
     main_loop = g_main_loop_new (NULL, FALSE);
 
-    signon_identity_store_credentials_with_info (idty,
-                                                 info,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
+    signon_identity_store_info (idty,
+                                info,
+                                NULL,
+                                store_credentials_identity_cb,
+                                NULL);
     g_main_loop_run (main_loop);
 
     /*
@@ -1244,7 +1278,7 @@ START_TEST(test_unregistered_identity)
      * */
     //run_main_loop_for_n_seconds(5);
 
-    signon_identity_query_info (idty, identity_info_cb, &info);
+    signon_identity_query_info (idty, NULL, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
     signon_identity_info_free (info);

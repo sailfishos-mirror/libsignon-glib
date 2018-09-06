@@ -95,75 +95,15 @@ static guint signals[LAST_SIGNAL];
 
 #define SIGNON_IDENTITY_PRIV(obj) (SIGNON_IDENTITY(obj)->priv)
 
-typedef struct _IdentityStoreCredentialsCbData
-{
-    SignonIdentity *self;
-    SignonIdentityStoreCredentialsCb cb;
-    gpointer user_data;
-} IdentityStoreCredentialsCbData;
-
-typedef struct _IdentityStoreCredentialsData
-{
-    GVariant *info_variant;
-    gpointer cb_data;
-} IdentityStoreCredentialsData;
-
-typedef enum {
-    SIGNON_VERIFY_USER,
-    SIGNON_VERIFY_SECRET,
-    SIGNON_INFO,
-    SIGNON_REMOVE,
-    SIGNON_SIGNOUT
-} IdentityOperation;
-
-typedef struct _IdentityVerifyCbData
-{
-    SignonIdentity *self;
-    SignonIdentityVerifyCb cb;
-    gpointer user_data;
-} IdentityVerifyCbData;
-
-typedef struct _IdentityVerifyData
-{
-    gchar *data_to_send;
-    GHashTable *params;
-    IdentityOperation operation;
-    gpointer cb_data;
-} IdentityVerifyData;
-
-typedef struct _IdentityInfoCbData
-{
-    SignonIdentity *self;
-    SignonIdentityInfoCb cb;
-    gpointer user_data;
-} IdentityInfoCbData;
-
-typedef struct _IdentityVoidCbData
-{
-    SignonIdentity *self;
-    SignonIdentityVoidCb cb;
-    gpointer user_data;
-} IdentityVoidCbData;
-
-typedef struct _IdentityVoidData
-{
-    IdentityOperation operation;
-    gpointer cb_data;
-} IdentityVoidData;
-
 static void identity_check_remote_registration (SignonIdentity *self);
-static void identity_store_credentials_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void identity_store_credentials_reply (GObject *object,
-                                              GAsyncResult *res,
-                                              gpointer userdata);
+static void identity_store_info_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void identity_store_info_reply (GObject *object, GAsyncResult *res, gpointer userdata);
 static void identity_session_object_destroyed_cb (gpointer data, GObject *where_the_session_was);
-static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gint operation,
-                                    SignonIdentityVerifyCb cb, gpointer user_data);
 static void identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void identity_query_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
 static void identity_remove_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_signout_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void identity_info_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
 static void identity_process_signout (SignonIdentity *self);
 static void identity_process_updated (SignonIdentity *self);
@@ -222,7 +162,7 @@ signon_identity_get_property (GObject *object,
     switch (property_id)
     {
     case PROP_ID:
-        g_value_set_uint (value, self->priv->id);
+        g_value_set_uint (value, signon_identity_get_id (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -315,11 +255,11 @@ signon_identity_class_init (SignonIdentityClass *klass)
     g_type_class_add_private (object_class, sizeof (SignonIdentityPrivate));
 
     /**
-     * SignonIdentity::signout:
+     * SignonIdentity::signed-out:
      *
      * Emitted when the identity was signed out.
      */
-    signals[SIGNEDOUT_SIGNAL] = g_signal_new("signout",
+    signals[SIGNEDOUT_SIGNAL] = g_signal_new("signed-out",
                                     G_TYPE_FROM_CLASS (klass),
                                     G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
                                     0 /* class closure */,
@@ -495,6 +435,25 @@ identity_registered (SignonIdentity *identity,
      * request for new registration, but emit
      * same error again and again
      * */
+}
+
+/**
+ * signon_identity_get_id:
+ * @identity: the #SignonIdentity.
+ *
+ * Get the id of the @identity.
+ *
+ * Since: 2.0
+ *
+ * Returns: the id of the #SignonIdentity, or 0 if the identity has not being registered.
+ */
+guint32
+signon_identity_get_id (SignonIdentity *identity)
+{
+    g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), 0);
+    g_return_val_if_fail (identity->priv != NULL, 0);
+
+    return identity->priv->id;
 }
 
 /**
@@ -719,89 +678,66 @@ signon_identity_create_session(SignonIdentity *self,
 }
 
 /**
- * signon_identity_store_credentials_with_info:
+ * signon_identity_store_info:
  * @self: the #SignonIdentity.
  * @info: the #SignonIdentityInfo data to store.
- * @cb: (scope async) (closure user_data): callback.
- * @user_data: user_data.
+ * @cancellable: (nullable): optional #GCancellable object, %NULL to ignore.
+ * @callback: a callback which will be called when the
+ * authentication reply is available.
+ * @user_data: user data to be passed to the callback.
  *
  * Stores the data from @info into the identity.
+ *
+ * Since: 2.0
  */
 void
-signon_identity_store_credentials_with_info(SignonIdentity *self,
-                                            const SignonIdentityInfo *info,
-                                            SignonIdentityStoreCredentialsCb cb,
-                                            gpointer user_data)
+signon_identity_store_info (SignonIdentity *self,
+                            const SignonIdentityInfo *info,
+                            GCancellable *cancellable,
+                            GAsyncReadyCallback callback,
+                            gpointer user_data)
 {
-    IdentityStoreCredentialsCbData *cb_data;
-    IdentityStoreCredentialsData *operation_data;
+    GTask *task = NULL;
+    GVariant *info_variant = NULL;
 
     DEBUG ();
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
     g_return_if_fail (info != NULL);
 
-    cb_data = g_slice_new0 (IdentityStoreCredentialsCbData);
-    cb_data->self = self;
-    cb_data->cb = cb;
-    cb_data->user_data = user_data;
-
-    operation_data = g_slice_new0 (IdentityStoreCredentialsData);
-    operation_data->info_variant = signon_identity_info_to_variant (info);
-    operation_data->cb_data = cb_data;
+    task = g_task_new (self, cancellable, callback, user_data);
+    g_task_set_source_tag (task, signon_identity_store_info);
+    info_variant = signon_identity_info_to_variant (info);
+    g_task_set_task_data (task, g_variant_ref_sink (info_variant), (GDestroyNotify)g_variant_unref);
 
     signon_proxy_call_when_ready (self,
                                   identity_object_quark(),
-                                  identity_store_credentials_ready_cb,
-                                  operation_data);
+                                  identity_store_info_ready_cb,
+                                  task);
 }
 
 /**
- * signon_identity_store_credentials_with_args:
+ * signon_identity_store_info_finish:
  * @self: the #SignonIdentity.
- * @username: username.
- * @secret: secret.
- * @store_secret: whether signond should store the password.
- * @methods: (transfer none) (element-type utf8 GStrv): methods.
- * @caption: caption.
- * @realms: (transfer none) (array zero-terminated=1): realms.
- * @access_control_list: (transfer none) (array zero-terminated=1): access control list.
- * @type: the type of the identity.
- * @cb: (scope async) (closure user_data): callback.
- * @user_data: user_data.
+ * @res: A #GAsyncResult obtained from the #GAsyncReadyCallback passed to
+ * signon_identity_store_info().
+ * @error: return location for error, or %NULL.
  *
- * Stores the given data into the identity.
+ * Collect the result of the signon_identity_store_info() operation.
+ *
+ * Returns: %TRUE if the info has been stored, %FALSE otherwise.
  */
-void signon_identity_store_credentials_with_args(SignonIdentity *self,
-                                                 const gchar *username,
-                                                 const gchar *secret,
-                                                 const gboolean store_secret,
-                                                 const GHashTable *methods,
-                                                 const gchar *caption,
-                                                 const gchar* const *realms,
-                                                 const gchar* const *access_control_list,
-                                                 SignonIdentityType type,
-                                                 SignonIdentityStoreCredentialsCb cb,
-                                                 gpointer user_data)
+gboolean
+signon_identity_store_info_finish (SignonIdentity *self,
+                                   GAsyncResult *res,
+                                   GError **error)
 {
-    SignonIdentityInfo *info;
+    g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
 
-    g_return_if_fail (SIGNON_IS_IDENTITY (self));
-
-    info = signon_identity_info_new ();
-    signon_identity_info_set_username (info, username);
-    signon_identity_info_set_secret (info, secret, store_secret);
-    signon_identity_info_set_methods (info, methods);
-    signon_identity_info_set_caption (info, caption);
-    signon_identity_info_set_realms (info, realms);
-    signon_identity_info_set_access_control_list (info, access_control_list);
-    signon_identity_info_set_identity_type (info, type);
-
-    signon_identity_store_credentials_with_info (self, info, cb, user_data);
-    signon_identity_info_free (info);
+    return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 static void
-identity_store_credentials_ready_cb (gpointer object, const GError *error, gpointer user_data)
+identity_store_info_ready_cb (gpointer object, const GError *error, gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (object));
 
@@ -811,61 +747,50 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
-    IdentityStoreCredentialsData *operation_data =
-        (IdentityStoreCredentialsData *)user_data;
-    g_return_if_fail (operation_data != NULL);
-
-    IdentityStoreCredentialsCbData *cb_data = operation_data->cb_data;
-    g_return_if_fail (cb_data != NULL);
+    GTask *task = (GTask *)user_data;
+    g_return_if_fail (task != NULL);
 
     if (error)
     {
         DEBUG ("IdentityError: %s", error->message);
-
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, 0, error, cb_data->user_data);
-        }
-
-        g_slice_free (IdentityStoreCredentialsCbData, cb_data);
+        g_task_return_error (task, g_error_copy (error));
+        g_object_unref (task);
     }
     else
     {
         g_return_if_fail (priv->proxy != NULL);
 
         sso_identity_call_store (priv->proxy,
-                                 operation_data->info_variant,
-                                 priv->cancellable,
-                                 identity_store_credentials_reply,
-                                 cb_data);
+                                 g_task_get_task_data (task),
+                                 g_task_get_cancellable (task),
+                                 identity_store_info_reply,
+                                 task);
     }
-
-    g_slice_free (IdentityStoreCredentialsData, operation_data);
 }
 
 static void
-identity_store_credentials_reply (GObject *object, GAsyncResult *res,
-                                  gpointer userdata)
+identity_store_info_reply (GObject *object,
+                           GAsyncResult *res,
+                           gpointer userdata)
 {
-    IdentityStoreCredentialsCbData *cb_data = (IdentityStoreCredentialsCbData *)userdata;
+    GTask *task = (GTask *)userdata;
     SsoIdentity *proxy = SSO_IDENTITY (object);
-    guint id;
+    SignonIdentity *self = NULL;
+    SignonIdentityPrivate *priv = NULL;
     GError *error = NULL;
+    guint id;
 
-    g_return_if_fail (cb_data != NULL);
-    g_return_if_fail (cb_data->self != NULL);
-    g_return_if_fail (cb_data->self->priv != NULL);
+    g_return_if_fail (task != NULL);
 
-    SignonIdentityPrivate *priv = cb_data->self->priv;
+    self = g_task_get_source_object (task);
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
 
-    sso_identity_call_store_finish (proxy, &id, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-
-    if (error == NULL)
-    {
-        g_return_if_fail (priv->identity_info == NULL);
-
+    priv = self->priv;
+    if (sso_identity_call_store_finish (proxy, &id, res, &error)) {
         GSList *slist = priv->sessions;
+
+        g_return_if_fail (priv->identity_info == NULL);
 
         while (slist)
         {
@@ -874,161 +799,141 @@ identity_store_credentials_reply (GObject *object, GAsyncResult *res,
             slist = g_slist_next (slist);
         }
 
-        g_object_set (cb_data->self, "id", id, NULL);
-        cb_data->self->priv->id = id;
+        g_object_set (self, "id", id, NULL);
 
         /*
          * if the previous state was REMOVED
          * then we need to reset it
          * */
         priv->removed = FALSE;
+        g_task_return_boolean (task, TRUE);
     }
-
-    if (cb_data->cb)
+    else
     {
-        (cb_data->cb) (cb_data->self, id, error, cb_data->user_data);
+        g_task_return_error (task, error);
     }
 
-    g_clear_error(&error);
-    g_slice_free (IdentityStoreCredentialsCbData, cb_data);
+    g_object_unref (task);
 }
 
 static void
-identity_verify_reply (GObject *object, GAsyncResult *res,
+identity_verify_reply (GObject *object,
+                       GAsyncResult *res,
                        gpointer userdata)
 {
     SsoIdentity *proxy = SSO_IDENTITY (object);
     gboolean valid;
     GError *error = NULL;
-    IdentityVerifyCbData *cb_data = (IdentityVerifyCbData *)userdata;
+    GTask *task = (GTask *)userdata;
 
-    g_return_if_fail (cb_data != NULL);
-    g_return_if_fail (cb_data->self != NULL);
+    g_return_if_fail (task != NULL);
 
-    sso_identity_call_verify_secret_finish (proxy, &valid, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-
-    if (cb_data->cb)
-    {
-        (cb_data->cb) (cb_data->self, valid, error, cb_data->user_data);
+    if (!sso_identity_call_verify_secret_finish (proxy, &valid, res, &error)) {
+        g_task_return_error (task, error);
+        g_object_unref (task);
+        return;
     }
 
-    g_clear_error(&error);
-    g_slice_free (IdentityVerifyCbData, cb_data);
+    g_task_return_boolean (task, TRUE);
+    g_object_unref (task);
 }
 
 static void
 identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data)
 {
-    g_return_if_fail (SIGNON_IS_IDENTITY (object));
+    SignonIdentity *self = (SignonIdentity *)object;
+    SignonIdentityPrivate *priv = NULL;
+    GTask *task = (GTask *)user_data;
 
-    SignonIdentity *self = SIGNON_IDENTITY (object);
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+    g_return_if_fail (self->priv != NULL);
+    priv = self->priv;
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
-    IdentityVerifyData *operation_data =
-        (IdentityVerifyData *)user_data;
-    g_return_if_fail (operation_data != NULL);
-
-    IdentityVerifyCbData *cb_data = operation_data->cb_data;
-    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (task != NULL);
 
     if (priv->removed == TRUE)
     {
-        GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
-                                         "Already removed from database.");
-
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, FALSE, new_error, cb_data->user_data);
-        }
-
-        g_error_free (new_error);
-        g_slice_free (IdentityVerifyCbData, cb_data);
+        g_task_return_new_error (task,
+                                 signon_error_quark (),
+                                 SIGNON_ERROR_IDENTITY_NOT_FOUND,
+                                 "Already removed from database.");
+        g_object_unref (task);
     }
     else if (error)
     {
         DEBUG ("IdentityError: %s", error->message);
-
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, FALSE, error, cb_data->user_data);
-        }
-
-        g_slice_free (IdentityVerifyCbData, cb_data);
+        g_task_return_error (task, g_error_copy (error));
+        g_object_unref (task);
     }
     else
     {
         DEBUG ("%s %d", G_STRFUNC, __LINE__);
         g_return_if_fail (priv->proxy != NULL);
 
-        switch (operation_data->operation) {
-        case SIGNON_VERIFY_SECRET:
-            sso_identity_call_verify_secret (priv->proxy,
-                                             operation_data->data_to_send,
-                                             priv->cancellable,
-                                             identity_verify_reply,
-                                             cb_data);
-            break;
-        default: g_critical ("Wrong operation code");
-        };
+        sso_identity_call_verify_secret (priv->proxy,
+                                         g_task_get_task_data (task),
+                                         g_task_get_cancellable (task),
+                                         identity_verify_reply,
+                                         task);
     }
-    g_free (operation_data->params);
-    g_free (operation_data->data_to_send);
-    g_slice_free (IdentityVerifyData, operation_data);
-}
-
-static void
-identity_verify_data(SignonIdentity *self,
-                     const gchar *data_to_send,
-                     gint operation,
-                     SignonIdentityVerifyCb cb,
-                     gpointer user_data)
-{
-    g_return_if_fail (SIGNON_IS_IDENTITY (self));
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-    IdentityVerifyCbData *cb_data = g_slice_new0 (IdentityVerifyCbData);
-    cb_data->self = self;
-    cb_data->cb = cb;
-    cb_data->user_data = user_data;
-
-    IdentityVerifyData *operation_data = g_slice_new0 (IdentityVerifyData);
-
-    operation_data->params = NULL;
-    operation_data->data_to_send = g_strdup (data_to_send);
-    operation_data->operation = operation;
-    operation_data->cb_data = cb_data;
-
-    signon_proxy_call_when_ready (self,
-                                  identity_object_quark(),
-                                  identity_verify_ready_cb,
-                                  operation_data);
 }
 
 /**
  * signon_identity_verify_secret:
  * @self: the #SignonIdentity.
  * @secret: the secret (password) to be verified.
- * @cb: (scope async) (closure user_data): callback.
- * @user_data: user_data.
+ * @cancellable: (nullable): optional #GCancellable object, %NULL to ignore.
+ * @callback: a callback which will be called when the verification is done.
+ * @user_data: user data to be passed to the callback.
  *
  * Verifies the given secret.
+ *
+ * Since: 2.0
  */
-void signon_identity_verify_secret(SignonIdentity *self,
-                                  const gchar *secret,
-                                  SignonIdentityVerifyCb cb,
-                                  gpointer user_data)
+void
+signon_identity_verify_secret (SignonIdentity *self,
+                               const gchar *secret,
+                               GCancellable *cancellable,
+                               GAsyncReadyCallback callback,
+                               gpointer user_data)
 {
-    identity_verify_data (self,
-                          secret,
-                          SIGNON_VERIFY_SECRET,
-                          cb,
-                          user_data);
+    GTask *task = NULL;
+
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    task = g_task_new (self, cancellable, callback, user_data);
+    g_task_set_source_tag (task, signon_identity_verify_secret);
+    g_task_set_task_data (task, g_strdup (secret), (GDestroyNotify)g_free);
+
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark(),
+                                  identity_verify_ready_cb,
+                                  task);
+}
+
+/**
+ * signon_identity_verify_secret_finish:
+ * @self: the #SignonIdentity.
+ * @res: A #GAsyncResult obtained from the #GAsyncReadyCallback passed to
+ * signon_identity_verify_secret().
+ * @error: return location for error, or %NULL.
+ *
+ * Collect the result of the signon_identity_verify_secret() operation.
+ *
+ * Returns: %TRUE if the secret is valid, %FALSE otherwise.
+ */
+gboolean
+signon_identity_verify_secret_finish (SignonIdentity *self,
+                                      GAsyncResult *res,
+                                      GError **error)
+{
+    g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
+
+    return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 static void
@@ -1092,34 +997,38 @@ identity_process_signout(SignonIdentity *self)
     g_signal_emit(G_OBJECT(self), signals[SIGNEDOUT_SIGNAL], 0);
 }
 
-/*
- * TODO: fix the implementation
- * of signond: it returns result = TRUE
- * in ANY CASE
- * */
 static void
-identity_signout_reply (GObject *object, GAsyncResult *res,
+identity_signout_reply (GObject *object,
+                        GAsyncResult *res,
                         gpointer userdata)
 {
     SsoIdentity *proxy = SSO_IDENTITY (object);
-    gboolean result;
     GError *error = NULL;
-    IdentityVoidCbData *cb_data = (IdentityVoidCbData *)userdata;
+    GTask *task = (GTask *)userdata;
+    SignonIdentity *self = NULL;
+    gboolean result = TRUE;
 
-    g_return_if_fail (cb_data != NULL);
-    g_return_if_fail (cb_data->self != NULL);
-    g_return_if_fail (cb_data->self->priv != NULL);
+    g_return_if_fail (task != NULL);
 
-    sso_identity_call_sign_out_finish (proxy, &result, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
+    self = g_task_get_source_object (task);
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
 
-    if (cb_data->cb)
+    if (sso_identity_call_sign_out_finish (proxy, &result, res, &error))
     {
-        (cb_data->cb) (cb_data->self, error, cb_data->user_data);
+        // FIXME: there is an issue in signond that makes result always return FALSE
+        //if (result)
+            g_task_return_boolean (task, TRUE);
+        /*else
+            g_task_return_new_error (task,
+                                     signon_error_quark (),
+                                     SIGNON_ERROR_SIGNOUT_FAILED,
+                                     "The Daemon could not Sign out the Identity.");*/
     }
+    else
+        g_task_return_error (task, error);
 
-    g_clear_error(&error);
-    g_slice_free (IdentityVoidCbData, cb_data);
+    g_object_unref (task);
 }
 
 static void
@@ -1128,308 +1037,335 @@ identity_removed_reply (GObject *object, GAsyncResult *res,
 {
     SsoIdentity *proxy = SSO_IDENTITY (object);
     GError *error = NULL;
-    IdentityVoidCbData *cb_data = (IdentityVoidCbData *)userdata;
+    GTask *task = (GTask *)userdata;
+    SignonIdentity *self = NULL;
 
-    g_return_if_fail (cb_data != NULL);
-    g_return_if_fail (cb_data->self != NULL);
-    g_return_if_fail (cb_data->self->priv != NULL);
+    g_return_if_fail (task != NULL);
 
-    sso_identity_call_remove_finish (proxy, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
+    self = g_task_get_source_object (task);
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
 
-    if (cb_data->cb)
-    {
-        (cb_data->cb) (cb_data->self, error, cb_data->user_data);
-    }
-
-    g_clear_error(&error);
-    g_slice_free (IdentityVoidCbData, cb_data);
-}
-
-static void
-identity_info_reply(GObject *object, GAsyncResult *res,
-                    gpointer userdata)
-{
-    SsoIdentity *proxy = SSO_IDENTITY (object);
-    GVariant *identity_data = NULL;
-    DEBUG ("%d %s", __LINE__, __func__);
-
-    GError *error = NULL;
-    IdentityInfoCbData *cb_data = (IdentityInfoCbData *)userdata;
-
-    g_return_if_fail (cb_data != NULL);
-    g_return_if_fail (cb_data->self != NULL);
-    g_return_if_fail (cb_data->self->priv != NULL);
-
-    SignonIdentityPrivate *priv = cb_data->self->priv;
-
-    sso_identity_call_get_info_finish (proxy, &identity_data, res, &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-    priv->identity_info =
-        signon_identity_info_new_from_variant (identity_data);
-    if (identity_data != NULL)
-        g_variant_unref (identity_data);
-
-    if (cb_data->cb)
-    {
-        (cb_data->cb) (cb_data->self, priv->identity_info, error, cb_data->user_data);
-    }
-
-    g_clear_error(&error);
-    g_slice_free (IdentityInfoCbData, cb_data);
-
-    priv->updated = TRUE;
-}
-
-static void
-identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
-{
-    g_return_if_fail (SIGNON_IS_IDENTITY (object));
-
-    SignonIdentity *self = SIGNON_IDENTITY (object);
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-    IdentityVoidData *operation_data =
-        (IdentityVoidData *)user_data;
-    g_return_if_fail (operation_data != NULL);
-
-    IdentityInfoCbData *cb_data = operation_data->cb_data;
-    g_return_if_fail (cb_data != NULL);
-
-    if (priv->removed == TRUE)
-    {
-        GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
-                                         "Already removed from database.");
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, NULL, new_error, cb_data->user_data);
-        }
-
-        g_error_free (new_error);
-    }
-    else if (error || priv->id == 0)
-    {
-        if (error)
-            DEBUG ("IdentityError: %s", error->message);
-        else
-            DEBUG ("Identity is not stored and has no info yet");
-
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, NULL, error, cb_data->user_data);
-        }
-    }
-    else if (priv->updated == FALSE)
-    {
-        g_return_if_fail (priv->proxy != NULL);
-        sso_identity_call_get_info (priv->proxy,
-                                    priv->cancellable,
-                                    identity_info_reply,
-                                    cb_data);
-    }
+    if (sso_identity_call_remove_finish (proxy, res, &error))
+        g_task_return_boolean (task, TRUE);
     else
-    {
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, priv->identity_info, error, cb_data->user_data);
-        }
-    }
+        g_task_return_error (task, error);
 
-    if (priv->updated || priv->removed)
-        g_slice_free (IdentityInfoCbData, cb_data);
-
-    g_slice_free (IdentityVoidData, operation_data);
+    g_object_unref (task);
 }
 
 static void
 identity_signout_ready_cb(gpointer object, const GError *error, gpointer user_data)
 {
-    g_return_if_fail (SIGNON_IS_IDENTITY (object));
+    SignonIdentity *self = (SignonIdentity *)object;
+    SignonIdentityPrivate *priv = NULL;
+    GTask *task = (GTask *)user_data;
 
-    SignonIdentity *self = SIGNON_IDENTITY (object);
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+    g_return_if_fail (self->priv != NULL);
+    priv = self->priv;
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    IdentityVoidCbData *cb_data = (IdentityVoidCbData *)user_data;
 
-    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (task != NULL);
 
     if (priv->removed == TRUE)
     {
-        GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
-                                         "Already removed from database.");
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, new_error, cb_data->user_data);
-        }
-
-        g_error_free (new_error);
-        g_slice_free (IdentityVoidCbData, cb_data);
+        g_task_return_new_error (task,
+                                 signon_error_quark (),
+                                 SIGNON_ERROR_IDENTITY_NOT_FOUND,
+                                 "Already removed from database.");
+        g_object_unref (task);
     }
     else if (error)
     {
         DEBUG ("IdentityError: %s", error->message);
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, error, cb_data->user_data);
-        }
-
-        g_slice_free (IdentityVoidCbData, cb_data);
+        g_task_return_error (task, g_error_copy (error));
+        g_object_unref (task);
     }
     else
     {
+        DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
         g_return_if_fail (priv->proxy != NULL);
         sso_identity_call_sign_out (priv->proxy,
                                     priv->cancellable,
                                     identity_signout_reply,
-                                    cb_data);
+                                    task);
     }
 }
 
 static void
-identity_remove_ready_cb(gpointer object, const GError *error, gpointer user_data)
+identity_remove_ready_cb (gpointer object,
+                          const GError *error,
+                          gpointer user_data)
 {
-    g_return_if_fail (SIGNON_IS_IDENTITY (object));
+    SignonIdentity *self = (SignonIdentity *)object;
+    SignonIdentityPrivate *priv = NULL;
+    GTask *task = (GTask *)user_data;
 
-    SignonIdentity *self = SIGNON_IDENTITY (object);
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+    g_return_if_fail (self->priv != NULL);
+    priv = self->priv;
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    IdentityVoidCbData *cb_data = (IdentityVoidCbData *)user_data;
-    g_return_if_fail (cb_data != NULL);
+
+    g_return_if_fail (task != NULL);
 
     if (priv->removed == TRUE)
     {
-        GError *new_error = g_error_new (signon_error_quark(),
-                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
-                                         "Already removed from database.");
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, new_error, cb_data->user_data);
-        }
-
-        g_error_free (new_error);
-        g_slice_free (IdentityVoidCbData, cb_data);
+        g_task_return_new_error (task,
+                                 signon_error_quark (),
+                                 SIGNON_ERROR_IDENTITY_NOT_FOUND,
+                                 "Already removed from database.");
+        g_object_unref (task);
     }
     else if (error)
     {
         DEBUG ("IdentityError: %s", error->message);
-        if (cb_data->cb)
-        {
-            (cb_data->cb) (self, error, cb_data->user_data);
-        }
-
-        g_slice_free (IdentityVoidCbData, cb_data);
+        g_task_return_error (task, g_error_copy (error));
+        g_object_unref (task);
     }
     else
     {
+        DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
         g_return_if_fail (priv->proxy != NULL);
         sso_identity_call_remove (priv->proxy,
-                                  priv->cancellable,
+                                  g_task_get_cancellable (task),
                                   identity_removed_reply,
-                                  cb_data);
+                                  task);
     }
-}
-
-void static
-identity_void_operation(SignonIdentity *self,
-                        gint operation,
-                        gpointer cb_data)
-{
-    g_return_if_fail (SIGNON_IS_IDENTITY (self));
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-    IdentityVoidData *operation_data = g_slice_new0 (IdentityVoidData);
-    operation_data->cb_data = cb_data;
-    signon_proxy_call_when_ready (self,
-                                  identity_object_quark(),
-                                  identity_info_ready_cb,
-                                  operation_data);
 }
 
 /**
  * signon_identity_remove:
  * @self: the #SignonIdentity.
- * @cb: (scope async) (closure user_data): callback to be called when the operation has completed.
- * @user_data: user_data to pass to the callback.
+ * @cancellable: (nullable): optional #GCancellable object, %NULL to ignore.
+ * @callback: a callback which will be called when the operation has completed.
+ * @user_data: user data to be passed to the callback.
  *
  * Removes the corresponding credentials record from the database.
+ *
+ * Since: 2.0
  */
-void signon_identity_remove(SignonIdentity *self,
-                           SignonIdentityRemovedCb cb,
-                           gpointer user_data)
+void
+signon_identity_remove (SignonIdentity *self,
+                        GCancellable *cancellable,
+                        GAsyncReadyCallback callback,
+                        gpointer user_data)
 {
+    GTask *task = NULL;
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    IdentityVoidCbData *cb_data = g_slice_new0 (IdentityVoidCbData);
-    cb_data->self = self;
-    cb_data->cb = (SignonIdentityVoidCb)cb;
-    cb_data->user_data = user_data;
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+    task = g_task_new (self, cancellable, callback, user_data);
+    g_task_set_source_tag (task, signon_identity_remove);
 
     signon_proxy_call_when_ready (self,
-                                  identity_object_quark(),
+                                  identity_object_quark (),
                                   identity_remove_ready_cb,
-                                  cb_data);
+                                  task);
+}
+
+gboolean
+signon_identity_remove_finish (SignonIdentity *self,
+                               GAsyncResult *res,
+                               GError **error)
+{
+    g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
+
+    return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 /**
- * signon_identity_signout:
+ * signon_identity_sign_out:
  * @self: the #SignonIdentity.
- * @cb: (scope async) (closure user_data): callback.
- * @user_data: user_data.
+ * @cancellable: (nullable): optional #GCancellable object, %NULL to ignore.
+ * @callback: a callback which will be called when the operation has completed.
+ * @user_data: user data to be passed to the callback.
  *
  * Asks signond to close all authentication sessions for this
  * identity, and to remove any stored secrets associated with it (password and
  * authentication tokens).
+ *
+ * Since: 2.0
  */
-void signon_identity_signout(SignonIdentity *self,
-                             SignonIdentitySignedOutCb cb,
-                             gpointer user_data)
+
+void
+signon_identity_sign_out (SignonIdentity *self,
+                          GCancellable *cancellable,
+                          GAsyncReadyCallback callback,
+                          gpointer user_data)
 {
+    GTask *task = NULL;
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    IdentityVoidCbData *cb_data = g_slice_new0 (IdentityVoidCbData);
-    cb_data->self = self;
-    cb_data->cb = (SignonIdentityVoidCb)cb;
-    cb_data->user_data = user_data;
+    task = g_task_new (self, cancellable, callback, user_data);
+    g_task_set_source_tag (task, signon_identity_sign_out);
 
     signon_proxy_call_when_ready (self,
                                   identity_object_quark(),
                                   identity_signout_ready_cb,
-                                  cb_data);
+                                  task);
+}
+
+gboolean
+signon_identity_sign_out_finish (SignonIdentity *self,
+                                 GAsyncResult *res,
+                                 GError **error)
+{
+    g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
+
+    return g_task_propagate_boolean (G_TASK (res), error);
+}
+
+static void
+identity_query_info_reply (GObject *object,
+                           GAsyncResult *res,
+                           gpointer userdata)
+{
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    SignonIdentity *self = NULL;
+    SignonIdentityPrivate *priv = NULL;
+    GVariant *identity_data = NULL;
+    GError *error = NULL;
+    GTask *task = (GTask *)userdata;
+
+    DEBUG ("%d %s", __LINE__, __func__);
+
+    g_return_if_fail (task != NULL);
+
+    self = g_task_get_source_object (task);
+
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
+
+    priv = self->priv;
+    if (sso_identity_call_get_info_finish (proxy, &identity_data, res, &error))
+    {
+        if (priv->identity_info)
+            g_clear_pointer (&priv->identity_info, (GDestroyNotify)signon_identity_info_free);
+
+        priv->identity_info = signon_identity_info_new_from_variant (identity_data);
+        g_variant_unref (identity_data);
+        g_object_set (self, "id", signon_identity_info_get_id (priv->identity_info), NULL);
+
+        priv->updated = TRUE;
+        g_task_return_pointer (task, signon_identity_info_copy (priv->identity_info), (GDestroyNotify)signon_identity_info_free);
+    }
+    else
+    {
+        g_task_return_error (task, error);
+    }
+
+    g_object_unref (task);
+}
+
+static void
+identity_query_ready_cb (gpointer object, const GError *error, gpointer user_data)
+{
+    SignonIdentity *self = (SignonIdentity *)object;
+    SignonIdentityPrivate *priv = NULL;
+    GTask *task = (GTask *)user_data;
+
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+    g_return_if_fail (self->priv != NULL);
+    priv = self->priv;
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    g_return_if_fail (task != NULL);
+
+    if (priv->removed == TRUE)
+    {
+        DEBUG ("Already removed from database.");
+        g_task_return_new_error (task,
+                                 signon_error_quark (),
+                                 SIGNON_ERROR_IDENTITY_NOT_FOUND,
+                                 "Already removed from database.");
+        g_object_unref (task);
+    }
+    else if (error)
+    {
+        DEBUG ("IdentityError: %s", error->message);
+        g_task_return_error (task, g_error_copy (error));
+        g_object_unref (task);
+    }
+    else if (priv->id == 0)
+    {
+        DEBUG ("Identity is not stored and has no info yet");
+        g_task_return_new_error (task,
+                                 signon_error_quark (),
+                                 SIGNON_ERROR_IDENTITY_NOT_FOUND,
+                                 "Identity is not stored and has no info yet");
+        g_object_unref (task);
+    }
+    else if (priv->updated == FALSE || priv->identity_info == NULL)
+    {
+        DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+        g_return_if_fail (priv->proxy != NULL);
+        sso_identity_call_get_info (priv->proxy,
+                                    g_task_get_cancellable (task),
+                                    identity_query_info_reply,
+                                    task);
+    }
+    else
+    {
+        DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+        g_task_return_pointer (task, signon_identity_info_copy (priv->identity_info), (GDestroyNotify)signon_identity_info_free);
+        g_object_unref (task);
+    }
 }
 
 /**
  * signon_identity_query_info:
  * @self: the #SignonIdentity.
- * @cb: (scope async) (closure user_data): callback.
- * @user_data: user_data.
+ * @cancellable: (nullable): optional #GCancellable object, %NULL to ignore.
+ * @callback: a callback which will be called when the #SignonIdentityInfo is
+ * available.
+ * @user_data: user data to be passed to the callback.
  *
- * Fetches the #SignonIdentityInfo data associated with this
- * identity.
+ * Fetches the #SignonIdentityInfo associated with this identity.
+ *
+ * Since: 2.0
  */
-void signon_identity_query_info(SignonIdentity *self,
-                                SignonIdentityInfoCb cb,
-                                gpointer user_data)
+void
+signon_identity_query_info (SignonIdentity *self,
+                            GCancellable *cancellable,
+                            GAsyncReadyCallback callback,
+                            gpointer user_data)
 {
+    GTask *task = NULL;
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    IdentityInfoCbData *cb_data = g_slice_new0 (IdentityInfoCbData);
-    cb_data->self = self;
-    cb_data->cb = cb;
-    cb_data->user_data = user_data;
+    task = g_task_new (self, cancellable, callback, user_data);
+    g_task_set_source_tag (task, signon_identity_query_info);
 
-    identity_void_operation(self,
-                            SIGNON_INFO,
-                            cb_data);
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark (),
+                                  identity_query_ready_cb,
+                                  task);
+}
+
+/**
+ * signon_identity_query_info_finish:
+ * @self: the #SignonIdentity.
+ * @res: A #GAsyncResult obtained from the #GAsyncReadyCallback passed to
+ * signon_identity_query_info().
+ * @error: return location for error, or %NULL.
+ *
+ * Collect the result of the signon_identity_query_info() operation.
+ *
+ * Returns: the #SignonIdentityInfo associated with this identity.
+ */
+SignonIdentityInfo *
+signon_identity_query_info_finish (SignonIdentity *self,
+                                   GAsyncResult *res,
+                                   GError **error)
+{
+    g_return_val_if_fail (g_task_is_valid (res, self), NULL);
+
+    return g_task_propagate_pointer (G_TASK (res), error);
 }
