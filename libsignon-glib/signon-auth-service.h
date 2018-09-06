@@ -71,10 +71,10 @@ void signon_auth_service_get_methods (SignonAuthService *auth_service,
                                       GCancellable *cancellable,
                                       GAsyncReadyCallback callback,
                                       gpointer user_data);
-GList *signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
-                                               GAsyncResult *result,
-                                               GError **error);
-GList *signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
+gchar **signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
+                                                GAsyncResult *result,
+                                                GError **error);
+gchar **signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
                                              GCancellable *cancellable,
                                              GError **error);
 
@@ -83,13 +83,13 @@ void signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
                                          GCancellable *cancellable,
                                          GAsyncReadyCallback callback,
                                          gpointer user_data);
-GList *signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_service,
-                                                  GAsyncResult *result,
-                                                  GError **error);
-GList *signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
-                                                const gchar *method,
-                                                GCancellable *cancellable,
-                                                GError **error);
+gchar **signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_service,
+                                                   GAsyncResult *result,
+                                                   GError **error);
+gchar **signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
+                                                 const gchar *method,
+                                                 GCancellable *cancellable,
+                                                 GError **error);
 G_END_DECLS
 
 #endif /* _SIGNON_AUTH_SERVICE_H_ */

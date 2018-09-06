@@ -118,7 +118,7 @@ signon_query_methods_cb (GObject *source_object,
 {
     SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (source_object);
     GError *error = NULL;
-    GList *methods = signon_auth_service_get_methods_finish (auth_service, res, &error);
+    gchar **methods = signon_auth_service_get_methods_finish (auth_service, res, &error);
     if (error)
     {
         g_warning ("%s: %s", G_STRFUNC, error->message);
@@ -132,9 +132,10 @@ signon_query_methods_cb (GObject *source_object,
     fail_unless (g_strcmp0 (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (methods != NULL, "The methods does not exist");
 
-    for (; methods != NULL; methods = methods->next)
+    for (gint i = 0; methods[i] != NULL; i++)
     {
-        if (g_strcmp0 (methods->data, "ssotest") == 0)
+        const gchar *method = methods[i];
+        if (g_strcmp0 (method, "ssotest") == 0)
         {
             has_ssotest = TRUE;
             break;
@@ -169,7 +170,7 @@ signon_query_mechanisms_cb (GObject *source_object,
 {
     SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (source_object);
     GError *error = NULL;
-    GList *mechanisms = signon_auth_service_get_mechanisms_finish (auth_service, res, &error);
+    gchar **mechanisms = signon_auth_service_get_mechanisms_finish (auth_service, res, &error);
     if (error)
     {
         g_warning ("%s: %s", G_STRFUNC, error->message);
@@ -185,15 +186,16 @@ signon_query_mechanisms_cb (GObject *source_object,
     fail_unless (strcmp (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (mechanisms != NULL, "The mechanisms does not exist");
 
-    for (; mechanisms != NULL; mechanisms = mechanisms->next)
+    for (gint i = 0; mechanisms[i] != NULL; i++)
     {
-        if (g_strcmp0 (mechanisms->data, "mech1") == 0)
+        const gchar *mechanism = mechanisms[i];
+        if (g_strcmp0 (mechanism, "mech1") == 0)
             has_mech1 = TRUE;
 
-        if (g_strcmp0 (mechanisms->data, "mech2") == 0)
+        if (g_strcmp0 (mechanism, "mech2") == 0)
             has_mech2 = TRUE;
 
-        if (g_strcmp0 (mechanisms->data, "mech3") == 0)
+        if (g_strcmp0 (mechanism, "mech3") == 0)
             has_mech3 = TRUE;
     }
 
@@ -211,7 +213,7 @@ signon_query_mechanisms_cb_fail (GObject *source_object,
 {
     SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (source_object);
     GError *error = NULL;
-    GList *mechanisms = signon_auth_service_get_mechanisms_finish (auth_service, res, &error);
+    gchar **mechanisms = signon_auth_service_get_mechanisms_finish (auth_service, res, &error);
     fail_unless (error != NULL);
     fail_unless (mechanisms == NULL);
     fail_unless (error->domain == SIGNON_ERROR);

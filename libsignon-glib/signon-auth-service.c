@@ -100,7 +100,6 @@ _signon_auth_service_finish_query_methods (GObject *source_object,
     SsoAuthService *proxy = NULL;
     GTask *task = (GTask *)user_data;
     gchar **methods_array = NULL;
-    GList *methods_list = NULL;
     GError *error = NULL;
 
     g_return_if_fail (SSO_IS_AUTH_SERVICE (source_object));
@@ -110,13 +109,7 @@ _signon_auth_service_finish_query_methods (GObject *source_object,
     proxy = SSO_AUTH_SERVICE (source_object);
     if (sso_auth_service_call_query_methods_finish (proxy, &methods_array, res, &error))
     {
-        int i;
-        for (i = 0; methods_array[i] != NULL; i++)
-        {
-            methods_list = g_list_append (methods_list, methods_array[i]);
-        }
-
-        g_task_return_pointer (task, methods_list, NULL);
+        g_task_return_pointer (task, methods_array, NULL);
     } else {
         g_task_return_error (task, error);
     }
@@ -130,7 +123,6 @@ _signon_auth_service_finish_query_mechanisms (GObject *source_object,
     SsoAuthService *proxy = NULL;
     GTask *task = (GTask *)user_data;
     gchar **mechanisms_array = NULL;
-    GList *mechanisms_list = NULL;
     GError *error = NULL;
 
     g_return_if_fail (SSO_IS_AUTH_SERVICE (source_object));
@@ -140,13 +132,7 @@ _signon_auth_service_finish_query_mechanisms (GObject *source_object,
     proxy = SSO_AUTH_SERVICE (source_object);
     if (sso_auth_service_call_query_mechanisms_finish (proxy, &mechanisms_array, res, &error))
     {
-        int i;
-        for (i = 0; mechanisms_array[i] != NULL; i++)
-        {
-            mechanisms_list = g_list_append (mechanisms_list, mechanisms_array[i]);
-        }
-
-        g_task_return_pointer (task, mechanisms_list, NULL);
+        g_task_return_pointer (task, mechanisms_array, NULL);
     } else {
         g_task_return_error (task, error);
     }
@@ -199,11 +185,13 @@ void signon_auth_service_get_methods (SignonAuthService *auth_service,
  *
  * Completes an asynchronous request to signon_auth_service_get_methods().
  *
- * Returns: (element-type utf8) (transfer full): A list of available methods.
+ * Returns: (array zero-terminated=1) (transfer full): A list of available
+ * methods.
  */
-GList *signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
-                                               GAsyncResult *result,
-                                               GError **error)
+gchar **
+signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
+                                        GAsyncResult *result,
+                                        GError **error)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
@@ -219,31 +207,25 @@ GList *signon_auth_service_get_methods_finish (SignonAuthService *auth_service,
  * Lists all the available methods.
  * This is a blocking version of signon_auth_service_get_methods().
  *
- * Returns: (element-type utf8) (transfer full): A list of available methods.
+ * Returns: (array zero-terminated=1) (transfer full): A list of available
+ * methods.
  *
  * Since: 2.0
  */
-GList *signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
-                                             GCancellable *cancellable,
-                                             GError **error)
+gchar **
+signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
+                                      GCancellable *cancellable,
+                                      GError **error)
 {
     SignonAuthServicePrivate *priv;
     gchar **methods_array = NULL;
-    GList *methods_list = NULL;
 
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
     priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
-    if (sso_auth_service_call_query_methods_sync (priv->proxy, &methods_array, cancellable, error))
-    {
-        int i;
-        for (i = 0; methods_array[i] != NULL; i++)
-        {
-            methods_list = g_list_append (methods_list, methods_array[i]);
-        }
-    }
+    sso_auth_service_call_query_methods_sync (priv->proxy, &methods_array, cancellable, error);
 
-    return methods_list;
+    return methods_array;
 }
 
 /**
@@ -258,11 +240,12 @@ GList *signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
  *
  * Since: 2.0
  */
-void signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
-                                         const gchar *method,
-                                         GCancellable *cancellable,
-                                         GAsyncReadyCallback callback,
-                                         gpointer user_data)
+void
+signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
+                                    const gchar *method,
+                                    GCancellable *cancellable,
+                                    GAsyncReadyCallback callback,
+                                    gpointer user_data)
 {
     SignonAuthServicePrivate *priv = NULL;
     GTask *task = NULL;
@@ -282,11 +265,13 @@ void signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
  *
  * Completes an asynchronous request to signon_auth_service_get_mechanisms().
  *
- * Returns: (element-type utf8) (transfer full): A list of available mechanisms.
+ * Returns: (array zero-terminated=1) (transfer full): A list of available
+ * mechanisms.
  */
-GList *signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_service,
-                                                  GAsyncResult *result,
-                                                  GError **error)
+gchar **
+signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_service,
+                                           GAsyncResult *result,
+                                           GError **error)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
@@ -303,30 +288,24 @@ GList *signon_auth_service_get_mechanisms_finish (SignonAuthService *auth_servic
  * Lists all the available mechanisms.
  * This is a blocking version of signon_auth_service_get_mechanisms().
  *
- * Returns: (element-type utf8) (transfer full): A list of available mechanisms.
+ * Returns: (array zero-terminated=1) (transfer full): A list of available
+ * mechanisms.
  *
  * Since: 2.0
  */
-GList *signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
-                                                const gchar *method,
-                                                GCancellable *cancellable,
-                                                GError **error)
+gchar **
+signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
+                                         const gchar *method,
+                                         GCancellable *cancellable,
+                                         GError **error)
 {
     SignonAuthServicePrivate *priv;
     gchar **mechanisms_array = NULL;
-    GList *mechanisms_list = NULL;
 
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
     priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
-    if (sso_auth_service_call_query_mechanisms_sync (priv->proxy, method, &mechanisms_array, cancellable, error))
-    {
-        int i;
-        for (i = 0; mechanisms_array[i] != NULL; i++)
-        {
-            mechanisms_list = g_list_append (mechanisms_list, mechanisms_array[i]);
-        }
-    }
+    sso_auth_service_call_query_mechanisms_sync (priv->proxy, method, &mechanisms_array, cancellable, error);
 
-    return mechanisms_list;
+    return mechanisms_array;
 }

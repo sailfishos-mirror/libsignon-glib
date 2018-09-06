@@ -41,6 +41,7 @@
 #include "sso-identity-gen.h"
 
 static void signon_identity_proxy_if_init (SignonProxyInterface *iface);
+static void signon_identity_set_id (SignonIdentity *identity, guint32 id);
 
 G_DEFINE_TYPE_WITH_CODE (SignonIdentity, signon_identity, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (SIGNON_TYPE_PROXY,
@@ -143,7 +144,7 @@ signon_identity_set_property (GObject *object,
     switch (property_id)
     {
     case PROP_ID:
-        self->priv->id = g_value_get_uint (value);
+        signon_identity_set_id (self, g_value_get_uint (value));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -246,7 +247,7 @@ signon_identity_class_init (SignonIdentityClass *klass)
                                0,
                                G_MAXUINT,
                                0,
-                               G_PARAM_READWRITE);
+                               G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
 
     g_object_class_install_property (object_class,
                                      PROP_ID,
@@ -445,7 +446,8 @@ identity_registered (SignonIdentity *identity,
  *
  * Since: 2.0
  *
- * Returns: the id of the #SignonIdentity, or 0 if the identity has not being registered.
+ * Returns: the id of the #SignonIdentity, or 0 if the identity has not being
+ * registered.
  */
 guint32
 signon_identity_get_id (SignonIdentity *identity)
@@ -454,6 +456,19 @@ signon_identity_get_id (SignonIdentity *identity)
     g_return_val_if_fail (identity->priv != NULL, 0);
 
     return identity->priv->id;
+}
+
+static void
+signon_identity_set_id (SignonIdentity *identity, guint32 id)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (identity));
+    g_return_if_fail (identity->priv != NULL);
+
+    if (identity->priv->id != id)
+    {
+        identity->priv->id = id;
+        g_object_notify (G_OBJECT (identity), "id");
+    }
 }
 
 /**
@@ -565,7 +580,6 @@ signon_identity_new_from_db (guint32 id)
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
     g_return_val_if_fail (identity->priv != NULL, NULL);
 
-    identity->priv->id = id;
     identity_check_remote_registration (identity);
 
     return identity;
@@ -799,7 +813,7 @@ identity_store_info_reply (GObject *object,
             slist = g_slist_next (slist);
         }
 
-        g_object_set (self, "id", id, NULL);
+        signon_identity_set_id (self, id);
 
         /*
          * if the previous state was REMOVED
@@ -969,8 +983,7 @@ identity_process_removed (SignonIdentity *self)
     signon_identity_info_free (priv->identity_info);
     priv->identity_info = NULL;
 
-    g_object_set (self, "id", 0, NULL);
-    priv->id = 0;
+    signon_identity_set_id (self, 0);
 }
 
 static void
@@ -1248,7 +1261,7 @@ identity_query_info_reply (GObject *object,
 
         priv->identity_info = signon_identity_info_new_from_variant (identity_data);
         g_variant_unref (identity_data);
-        g_object_set (self, "id", signon_identity_info_get_id (priv->identity_info), NULL);
+        signon_identity_set_id (self, signon_identity_info_get_id (priv->identity_info));
 
         priv->updated = TRUE;
         g_task_return_pointer (task, signon_identity_info_copy (priv->identity_info), (GDestroyNotify)signon_identity_info_free);
