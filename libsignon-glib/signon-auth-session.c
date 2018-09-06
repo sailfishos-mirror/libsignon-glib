@@ -130,7 +130,6 @@ typedef struct _AuthSessionQueryAvailableMechanismsCbData
 
 typedef struct _AuthSessionProcessCbData
 {
-    SignonAuthSessionProcessCb cb;
     gpointer user_data;
 } AuthSessionProcessCbData;
 
@@ -233,41 +232,6 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
                    0,
                    SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
                    auth_session_process_pending_message);
-}
-
-static void
-process_async_cb_wrapper (GObject *object, GAsyncResult *res,
-                          gpointer user_data)
-{
-    AuthSessionProcessCbData *cb_data = user_data;
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    GVariant *v_reply;
-    GHashTable *reply = NULL;
-    GError *error = NULL;
-    gboolean cancelled;
-
-    v_reply = signon_auth_session_process_finish (self, res, &error);
-
-    cancelled = error != NULL &&
-        error->domain == G_IO_ERROR &&
-        error->code == G_IO_ERROR_CANCELLED;
-
-    /* Do not invoke the callback if the operation was cancelled */
-    if (cb_data->cb != NULL && !cancelled)
-    {
-        if (v_reply != NULL)
-            reply = signon_hash_table_from_variant (v_reply);
-
-        cb_data->cb (self, reply, error, cb_data->user_data);
-        if (reply != NULL)
-            g_hash_table_unref (reply);
-    }
-
-    if (v_reply != NULL)
-        g_variant_unref (v_reply);
-
-    g_slice_free (AuthSessionProcessCbData, cb_data);
-    g_clear_error (&error);
 }
 
 static void
@@ -527,56 +491,6 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
                                   auth_session_object_quark(),
                                   auth_session_query_available_mechanisms_ready_cb,
                                   operation_data);
-}
-
-/**
- * SignonAuthSessionProcessCb:
- * @self: the #SignonAuthSession.
- * @session_data: (transfer none) (element-type utf8 GValue): a dictionary with
- * the response.
- * @error: a #GError if an error occurred, %NULL otherwise.
- * @user_data: the user data that was passed when installing this callback.
- *
- * This callback is invoked when the authentication plugin delivers the result
- * of the signon_auth_session_process() operation.
- */
-
-/**
- * signon_auth_session_process:
- * @self: the #SignonAuthSession.
- * @session_data: (transfer none) (element-type utf8 GValue): a dictionary of parameters.
- * @mechanism: the authentication mechanism to be used.
- * @cb: (scope async): a callback which will be called with the result.
- * @user_data: user data to be passed to the callback.
- *
- * Performs one step of the authentication process. If the #SignonAuthSession
- * object is bound to an existing identity, the identity properties such as
- * username and password will be also passed to the authentication plugin, so
- * there's no need to fill them into @session_data.
- * @session_data can be used to add additional authentication parameters to the
- * session, or to override the parameters otherwise taken from the identity.
- *
- * Deprecated: 1.8: Use signon_auth_session_process_async() instead.
- */
-void
-signon_auth_session_process (SignonAuthSession *self,
-                             const GHashTable *session_data,
-                             const gchar* mechanism,
-                             SignonAuthSessionProcessCb cb,
-                             gpointer user_data)
-{
-    GVariant *v_session_data;
-
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
-
-    AuthSessionProcessCbData *cb_data = g_slice_new0 (AuthSessionProcessCbData);
-    cb_data->cb = cb;
-    cb_data->user_data = user_data;
-
-    v_session_data = signon_hash_table_to_variant (session_data);
-
-    signon_auth_session_process_async (self, v_session_data, mechanism, NULL,
-                                       process_async_cb_wrapper, cb_data);
 }
 
 /**

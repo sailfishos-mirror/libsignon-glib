@@ -404,36 +404,6 @@ test_auth_session_states_cb (SignonAuthSession *self,
     (*state_counter)++;
 }
 
-static void
-test_auth_session_process_cb (SignonAuthSession *self,
-                             GHashTable *sessionData,
-                             const GError *error,
-                             gpointer user_data)
-{
-    if (error)
-    {
-        g_warning ("%s: %s", G_STRFUNC, error->message);
-        g_main_loop_quit (main_loop);
-        fail();
-    }
-
-    fail_unless (sessionData != NULL, "The result is empty");
-
-    gchar* usernameKey = g_strdup(SIGNON_SESSION_DATA_USERNAME);
-    GValue* usernameVa = (GValue*)g_hash_table_lookup(sessionData, usernameKey);
-
-    gchar* realmKey = g_strdup(SIGNON_SESSION_DATA_REALM);
-    GValue* realmVa = (GValue*)g_hash_table_lookup(sessionData, realmKey);
-
-    fail_unless(g_strcmp0(g_value_get_string(usernameVa), "test_username") == 0, "Wrong value of username");
-    fail_unless(g_strcmp0(g_value_get_string(realmVa), "testRealm_after_test") == 0, "Wrong value of realm");
-
-    g_free(usernameKey);
-    g_free(realmKey);
-
-    g_main_loop_quit (main_loop);
-}
-
 START_TEST(test_auth_session_creation)
 {
     GError *err = NULL;
@@ -461,96 +431,6 @@ START_TEST(test_auth_session_creation)
     fail_if (idty_sentinel != NULL, "Identity is not synchronized with its AuthSession");
 
     g_clear_error(&err);
-}
-END_TEST
-
-START_TEST(test_auth_session_process)
-{
-    gint state_counter = 0;
-    GError *err = NULL;
-
-    g_debug("%s", G_STRFUNC);
-    SignonIdentity *idty = signon_identity_new(NULL, NULL);
-    fail_unless (idty != NULL, "Cannot create Iddentity object");
-
-    SignonAuthSession *auth_session = signon_identity_create_session(idty,
-                                                                     "ssotest",
-                                                                     &err);
-
-    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
-
-    g_clear_error(&err);
-
-    g_signal_connect(auth_session, "state-changed",
-                     G_CALLBACK(test_auth_session_states_cb), &state_counter);
-
-    GHashTable* sessionData = g_hash_table_new(g_str_hash,
-                                               g_str_equal);
-    GValue* usernameVa = g_new0(GValue, 1);
-    gchar* usernameKey = g_strdup(SIGNON_SESSION_DATA_USERNAME);
-    g_value_init (usernameVa, G_TYPE_STRING);
-    g_value_set_static_string(usernameVa, "test_username");
-
-    g_hash_table_insert (sessionData,
-                         usernameKey,
-                         usernameVa);
-
-    GValue* passwordVa = g_new0(GValue, 1);
-    gchar* passwordKey = g_strdup(SIGNON_SESSION_DATA_SECRET);
-
-    g_value_init (passwordVa, G_TYPE_STRING);
-    g_value_set_static_string(passwordVa, "test_username");
-
-    g_hash_table_insert (sessionData,
-                         passwordKey,
-                         passwordVa);
-
-    signon_auth_session_process(auth_session,
-                               sessionData,
-                               "mech1",
-                               test_auth_session_process_cb,
-                               sessionData);
-    main_loop = g_main_loop_new (NULL, FALSE);
-
-
-    g_main_loop_run (main_loop);
-    fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
-    state_counter = 0;
-
-    signon_auth_session_process(auth_session,
-                               sessionData,
-                               "mech1",
-                               test_auth_session_process_cb,
-                               sessionData);
-
-    g_main_loop_run (main_loop);
-    fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
-    state_counter = 0;
-
-    signon_auth_session_process(auth_session,
-                               sessionData,
-                               "mech1",
-                               test_auth_session_process_cb,
-                               sessionData);
-
-    g_main_loop_run (main_loop);
-    fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
-    state_counter = 0;
-
-    g_object_unref (auth_session);
-    g_object_unref (idty);
-
-    g_value_unset(usernameVa);
-    g_free(usernameVa);
-    g_free(usernameKey);
-
-    g_value_unset(passwordVa);
-    g_free(passwordVa);
-    g_free(passwordKey);
-
-    g_hash_table_unref (sessionData);
-
-    end_test ();
 }
 END_TEST
 
@@ -691,12 +571,14 @@ START_TEST(test_auth_session_process_failure)
 END_TEST
 
 static void
-test_auth_session_process_after_store_cb (SignonAuthSession *self,
-                                          GHashTable *reply,
-                                          const GError *error,
+test_auth_session_process_after_store_cb (GObject *source_object,
+                                          GAsyncResult *res,
                                           gpointer user_data)
 {
-    GValue *v_username;
+    gchar *v_username;
+    GError *error = NULL;
+    GVariantDict *dict = NULL;
+    GVariant *reply = signon_auth_session_process_finish ((SignonAuthSession *)source_object, res, &error);
 
     if (error != NULL)
     {
@@ -707,13 +589,14 @@ test_auth_session_process_after_store_cb (SignonAuthSession *self,
 
     fail_unless (reply != NULL, "The result is empty");
 
-    v_username = g_hash_table_lookup(reply,
-                                     SIGNON_SESSION_DATA_USERNAME);
-
-    fail_unless (g_strcmp0 (g_value_get_string (v_username), "Nice user") == 0,
+    dict = g_variant_dict_new (reply);
+    g_variant_dict_lookup (dict, SIGNON_SESSION_DATA_USERNAME, "s", &v_username);
+    fail_unless (g_strcmp0 (v_username, "Nice user") == 0,
                  "Wrong value of username");
+    g_variant_dict_unref (dict);
+    g_free (v_username);
 
-    g_object_unref (self);
+    g_object_unref (source_object);
 
     g_main_loop_quit (main_loop);
 }
@@ -725,6 +608,7 @@ test_auth_session_process_after_store_start_session(SignonIdentity *self,
                                                     gpointer user_data)
 {
     GError *err = NULL;
+    GVariant *session_data = NULL;
 
     if (error != NULL)
     {
@@ -748,15 +632,15 @@ test_auth_session_process_after_store_start_session(SignonIdentity *self,
         g_clear_error (&err);
     }
 
-    GHashTable *session_data = g_hash_table_new (g_str_hash,
-                                                 g_str_equal);
+    session_data = g_variant_new (g_variant_type_peek_string (G_VARIANT_TYPE_VARDICT), NULL);
 
-    signon_auth_session_process (auth_session,
-                                 session_data,
-                                 "mech1",
-                                 test_auth_session_process_after_store_cb,
-                                 NULL);
-    g_hash_table_unref (session_data);
+    signon_auth_session_process_async (auth_session,
+                                       session_data,
+                                       "mech1",
+                                       NULL,
+                                       test_auth_session_process_after_store_cb,
+                                       NULL);
+    g_object_unref (session_data);
 }
 
 START_TEST(test_auth_session_process_after_store)
@@ -985,18 +869,6 @@ static void identity_verify_secret_cb(SignonIdentity *self,
     fail_unless (valid == TRUE, "The callback gives FALSE for proper secret");
     g_main_loop_quit((GMainLoop *)user_data);
 }
-
-static void identity_verify_username_cb(SignonIdentity *self,
-                                        gboolean valid,
-                                        const GError *error,
-                                        gpointer user_data)
-{
-    fail_unless (error != NULL, "The callback returned NULL error for unimplemented function");
-    g_warning ("Error: %s ", error->message);
-
-    g_main_loop_quit((GMainLoop *)user_data);
-}
-
 
 START_TEST(test_verify_secret_identity)
 {
@@ -1479,12 +1351,13 @@ START_TEST(test_unregistered_auth_session)
 END_TEST
 
 static void
-test_regression_unref_process_cb (SignonAuthSession *self,
-                                  GHashTable *reply,
-                                  const GError *error,
+test_regression_unref_process_cb (GObject *source_object,
+                                  GAsyncResult *res,
                                   gpointer user_data)
 {
-    GValue *v_string;
+    GError *error = NULL;
+    GVariant *reply = signon_auth_session_process_finish ((SignonAuthSession *)source_object, res, &error);
+    gchar *v_string = NULL;
 
     if (error)
     {
@@ -1498,13 +1371,12 @@ test_regression_unref_process_cb (SignonAuthSession *self,
     fail_unless (g_strcmp0 (user_data, "Hi there!") == 0,
                  "Didn't get expected user_data");
 
-    v_string = g_hash_table_lookup(reply, "James");
-    fail_unless (v_string != 0);
-    fail_unless (g_strcmp0 (g_value_get_string (v_string), "Bond") == 0,
-                 "Wrong reply data");
+    g_variant_lookup (reply, "James", "&s", &v_string);
+    fail_unless (v_string != NULL);
+    fail_unless (g_strcmp0 (v_string, "Bond") == 0, "Wrong reply data");
 
     /* The next line is actually the regression we want to test */
-    g_object_unref (self);
+    g_object_unref (source_object);
 
     g_main_loop_quit (main_loop);
 }
@@ -1512,9 +1384,9 @@ test_regression_unref_process_cb (SignonAuthSession *self,
 START_TEST(test_regression_unref)
 {
     SignonAuthSession *auth_session;
-    GHashTable *session_data;
+    GVariant *session_data;
     GError *error = NULL;
-    GValue v_string = G_VALUE_INIT;
+    GVariantBuilder builder;
 
     g_debug ("%s", G_STRFUNC);
 
@@ -1523,17 +1395,20 @@ START_TEST(test_regression_unref)
     auth_session = signon_auth_session_new (0, "ssotest", &error);
     fail_unless (auth_session != NULL);
 
-    session_data = g_hash_table_new (g_str_hash, g_str_equal);
-    g_value_init (&v_string, G_TYPE_STRING);
-    g_value_set_static_string (&v_string, "Bond");
-    g_hash_table_insert (session_data, "James", &v_string);
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add (&builder, "{sv}",
+                           "James",
+                           g_variant_new_string ("Bond"));
 
-    signon_auth_session_process (auth_session,
-                                 session_data,
-                                 "mech1",
-                                 test_regression_unref_process_cb,
-                                 "Hi there!");
-    g_hash_table_unref (session_data);
+    session_data = g_variant_builder_end (&builder);
+
+    signon_auth_session_process_async (auth_session,
+                                       session_data,
+                                       "mech1",
+                                       NULL,
+                                       test_regression_unref_process_cb,
+                                       "Hi there!");
+    g_object_unref (session_data);
     g_main_loop_run (main_loop);
 
     end_test ();
@@ -1561,7 +1436,6 @@ signon_suite(void)
     tcase_add_test (tc_core, test_auth_session_creation);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
-    tcase_add_test (tc_core, test_auth_session_process);
     tcase_add_test (tc_core, test_auth_session_process_async);
     tcase_add_test (tc_core, test_auth_session_process_failure);
     tcase_add_test (tc_core, test_auth_session_process_after_store);
