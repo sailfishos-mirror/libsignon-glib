@@ -47,6 +47,9 @@ gnome.gtkdoc(
         'libsignon-glib.types',
     ],
     content_files: doc_content_files,
+    expand_content_files: files(
+        'migrating-1to2.xml'
+    ),
     fixxref_args: [
         '--extra-dir=@0@'.format(join_paths(glib_docpath, 'glib')),
         '--extra-dir=@0@'.format(join_paths(glib_docpath, 'gobject')),

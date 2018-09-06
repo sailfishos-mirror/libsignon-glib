@@ -58,6 +58,19 @@
     <xi:include href="../../libsignon-glib/sso-identity-gen-doc-com.google.code.AccountsSSO.SingleSignOn.Identity.xml"/>
   </part>
 
+  <part id="migrating">
+    <title>Migrating from Previous Versions of libsignon-glib</title>
+
+    <partintro>
+      <para>
+        This part describes what you need to change in programs use
+        older versions of libsignon-glib so that they can use the new features.
+      </para>
+    </partintro>
+
+    <xi:include href="xml/migrating-1to2.xml" />
+  </part>
+
   <part id="appendices">
     <title>Appendices</title>
     <index id="api-index-full">

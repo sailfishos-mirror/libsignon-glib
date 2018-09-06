@@ -2,11 +2,13 @@
 <FILE>signon-auth-service</FILE>
 <TITLE>SignonAuthService</TITLE>
 SignonAuthService
-SignonQueryMechanismCb
-SignonQueryMethodsCb
 signon_auth_service_new
-signon_auth_service_query_mechanisms
-signon_auth_service_query_methods
+signon_auth_service_get_mechanisms
+signon_auth_service_get_mechanisms_finish
+signon_auth_service_get_mechanisms_sync
+signon_auth_service_get_methods
+signon_auth_service_get_methods_finish
+signon_auth_service_get_methods_sync
 <SUBSECTION Private>
 SignonAuthServiceClass
 SignonAuthServicePrivate
@@ -33,16 +35,14 @@ SIGNON_SESSION_DATA_UI_POLICY
 SIGNON_SESSION_DATA_USERNAME
 SIGNON_SESSION_DATA_WINDOW_ID
 SignonAuthSession
-SignonAuthSessionProcessCb
-SignonAuthSessionQueryAvailableMechanismsCb
 SignonSessionDataUiPolicy
 signon_auth_session_cancel
 signon_auth_session_get_method
 signon_auth_session_new
 signon_auth_session_process
-signon_auth_session_process_async
 signon_auth_session_process_finish
-signon_auth_session_query_available_mechanisms
+signon_auth_session_list_available_mechanisms
+signon_auth_session_list_available_mechanisms_finish
 <SUBSECTION Private>
 SignonAuthSessionClass
 SignonAuthSessionPrivate
@@ -77,26 +77,21 @@ signon_error_get_type
 <FILE>signon-identity</FILE>
 <TITLE>SignonIdentity</TITLE>
 SignonIdentity
-SignonIdentityInfoCb
-SignonIdentityReferenceAddedCb
-SignonIdentityReferenceRemovedCb
-SignonIdentityRemovedCb
-SignonIdentitySignedOutCb
-SignonIdentityStoreCredentialsCb
-SignonIdentityVerifyCb
-SignonIdentityVoidCb
-signon_identity_add_reference
 signon_identity_create_session
 signon_identity_get_last_error
 signon_identity_new
 signon_identity_new_from_db
+signon_identity_get_id
 signon_identity_query_info
-signon_identity_remove
-signon_identity_remove_reference
-signon_identity_signout
-signon_identity_store_credentials_with_args
-signon_identity_store_credentials_with_info
+signon_identity_query_info_finish
+signon_identity_store_info
+signon_identity_store_info_finish
 signon_identity_verify_secret
+signon_identity_verify_secret_finish
+signon_identity_sign_out
+signon_identity_sign_out_finish
+signon_identity_remove
+signon_identity_remove_finish
 <SUBSECTION Private>
 SignonIdentityClass
 SignonIdentityPrivate
@@ -112,6 +107,7 @@ signon_identity_get_type
 
 <SECTION>
 <FILE>signon-identity-info</FILE>
+<TITLE>SignonIdentityInfo</TITLE>
 SignonIdentityInfo
 SignonIdentityType
 signon_identity_info_copy

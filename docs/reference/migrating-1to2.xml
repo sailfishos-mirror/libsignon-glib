@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+               "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd" [
+<!ENTITY % local.common.attrib "xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'">
+]>
+<chapter id="signon-migrating-1-to-2">
+  <title>Migrating from libsignon-glib 1.x to libsignon-glib 2.x</title>
+
+  <para>
+    The whole API has been reworked to be easily usable with the GObject
+    Introspection. It now fully uses the #GTask API internally and provides
+    the expected asynchronous functions instead of relying on callbacks.
+  </para>
+  <para>
+    This helps to keep the objects lifecycle sane across the projects. But it
+    required some invasive changes in the API.
+  </para>
+
+  <section>
+    <title>Changes in #SignonAuthService</title>
+    <para>
+        signon_auth_service_query_mechanisms() has been changed into
+        signon_auth_service_get_mechanisms(). There is no more custom callback
+        to use, only the #GAsyncResult API. use
+        signon_auth_service_get_mechanisms_finish() in your #GAsyncReadyCallback
+        to get the mechanisms.
+    </para>
+    <para>
+        In a same manner signon_auth_service_query_methods() has been changed to
+        signon_auth_service_get_methods().
+    </para>
+    <para>
+        There are now synchronous methods to get the methods and mechanisms.
+    </para>
+  </section>
+  <section>
+    <title>Changes in #SignonAuthSession</title>
+    <para>
+        The long deprecated signon_auth_session_process() has been removed and
+        the signon_auth_session_process_async() method has been renamed to
+        signon_auth_session_process() as Asynchronous methods are the default
+        way to use this API.
+    </para>
+  </section>
+  <section>
+    <title>Changes in #SignonIdentity</title>
+    <para>
+        signon_identity_store_credentials_with_args() has been completely
+        removed, only signon_identity_store_info() should be used
+    </para>
+    <para>
+        signon_identity_store_credentials_with_info() has been renamed
+        to signon_identity_store_info() as #SignonIdentityInfo is the only way
+        to get and set the identity informations.
+    </para>
+    <para>
+        signon_identity_add_reference() and signon_identity_remove_reference()
+        have been completely removed without replacement.
+    </para>
+    <para>
+        The "id" property is now read-only and only settable at construction
+        time. there is a new signon_identity_get_id() method to easily get the
+        value of the property. The object now notifies when the property has
+        changed with a property signal emition.
+    </para>
+    <para>
+        The "signout" signal has been renamed to #SignonIdentity::signed-out to
+        be more descriptive and avoid symbol collisions with the
+        signon_identity_sign_out() method.
+    </para>
+    <para>
+        The signon_identity_signout() has been renamed to
+        signon_identity_sign_out() to avoid symbol collisions with the "signout"
+        signal.
+    </para>
+    <para>
+        All the methods have been modified to use the #GAsyncResult API. use
+        *_finish() in your #GAsyncReadyCallback to get the result of the
+        operation.
+    </para>
+  </section>
+</chapter>
