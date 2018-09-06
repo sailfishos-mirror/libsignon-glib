@@ -64,7 +64,6 @@ enum
 static guint auth_session_signals[LAST_SIGNAL] = { 0 };
 static const gchar auth_session_process_pending_message[] =
     "The request is added to queue.";
-static const gchar data_key_process[] = "signon-process";
 
 struct _SignonAuthSessionPrivate
 {
@@ -114,11 +113,6 @@ typedef struct _AuthSessionProcessData
     GVariant *session_data;
     gchar *mechanism;
 } AuthSessionProcessData;
-
-typedef struct _AuthSessionProcessCbData
-{
-    gpointer user_data;
-} AuthSessionProcessCbData;
 
 #define SIGNON_AUTH_SESSION_PRIV(obj) (SIGNON_AUTH_SESSION(obj)->priv)
 #define SIGNON_AUTH_SESSION_GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSessionPrivate))
@@ -204,7 +198,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         return;
     }
 
-    process_data = g_object_get_data ((GObject *)res, data_key_process);
+    process_data = g_task_get_task_data (res);
     g_return_if_fail (process_data != NULL);
 
     sso_auth_session_call_process (priv->proxy,
@@ -539,8 +533,7 @@ signon_auth_session_process (SignonAuthSession *self,
     process_data = g_slice_new0 (AuthSessionProcessData);
     process_data->session_data = g_variant_ref_sink (session_data);
     process_data->mechanism = g_strdup (mechanism);
-    g_object_set_data_full ((GObject *)res, data_key_process, process_data,
-                            (GDestroyNotify)auth_session_process_data_free);
+    g_task_set_task_data (res, process_data, (GDestroyNotify)auth_session_process_data_free);
 
     priv->busy = TRUE;
 
