@@ -119,8 +119,7 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
  * @error: a #GError if an error occurred, or %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
  *
- * Callback to be passed to signon_identity_store_credentials_with_args() or
- * signon_identity_store_credentials_with_info().
+ * Callback to be passed to signon_identity_store_credentials_with_info().
  */
 typedef void (*SignonIdentityStoreCredentialsCb) (SignonIdentity *self,
                                                   guint32 id,
@@ -129,18 +128,6 @@ typedef void (*SignonIdentityStoreCredentialsCb) (SignonIdentity *self,
 
 void signon_identity_store_credentials_with_info(SignonIdentity *self,
                                                  const SignonIdentityInfo *info,
-                                                 SignonIdentityStoreCredentialsCb cb,
-                                                 gpointer user_data);
-
-void signon_identity_store_credentials_with_args(SignonIdentity *self,
-                                                 const gchar *username,
-                                                 const gchar *secret,
-                                                 const gboolean store_secret,
-                                                 const GHashTable *methods,
-                                                 const gchar *caption,
-                                                 const gchar* const *realms,
-                                                 const gchar* const *access_control_list,
-                                                 SignonIdentityType type,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data);
 
@@ -187,16 +174,6 @@ void signon_identity_remove(SignonIdentity *self,
 
 void signon_identity_signout(SignonIdentity *self,
                             SignonIdentitySignedOutCb cb,
-                            gpointer user_data);
-
-void signon_identity_add_reference(SignonIdentity *self,
-                            const gchar *reference,
-                            SignonIdentityReferenceAddedCb cb,
-                            gpointer user_data);
-
-void signon_identity_remove_reference(SignonIdentity *self,
-                            const gchar *reference,
-                            SignonIdentityReferenceRemovedCb cb,
                             gpointer user_data);
 
 G_END_DECLS

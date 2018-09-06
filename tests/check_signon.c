@@ -685,23 +685,18 @@ START_TEST(test_auth_session_process_after_store)
 }
 END_TEST
 
-static GHashTable *create_methods_hashtable()
+static void add_methods_to_identity_info (SignonIdentityInfo *info)
 {
-    gchar *mechanisms[] = {
+    const gchar *mechanisms[] = {
             "mechanism1",
             "mechanism2",
             "mechanism3",
             NULL
     };
 
-    GHashTable *methods = g_hash_table_new_full (g_str_hash, g_str_equal, g_free,
-                                                (GDestroyNotify)g_strfreev);
-
-    g_hash_table_insert (methods, g_strdup("method1"), g_strdupv(mechanisms));
-    g_hash_table_insert (methods, g_strdup("method2"), g_strdupv(mechanisms));
-    g_hash_table_insert (methods, g_strdup("method3"), g_strdupv(mechanisms));
-
-    return methods;
+    signon_identity_info_set_method (info, "method1", mechanisms);
+    signon_identity_info_set_method (info, "method2", mechanisms);
+    signon_identity_info_set_method (info, "method3", mechanisms);
 }
 
 static void new_identity_store_credentials_cb(SignonIdentity *self,
@@ -729,25 +724,23 @@ static guint
 new_identity()
 {
     SignonIdentity *identity;
-    GHashTable *methods;
     const gchar *const acl[] = { "*", NULL };
     guint id = 0;
 
     identity = signon_identity_new(NULL, NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity));
-    methods = g_hash_table_new (g_str_hash, g_str_equal);
-    signon_identity_store_credentials_with_args (identity,
-                                                 "James Bond",
-                                                 "007",
-                                                 1,
-                                                 methods,
-                                                 "caption",
-                                                 NULL,
-                                                 acl,
-                                                 0,
+
+    SignonIdentityInfo *info = signon_identity_info_new ();
+    signon_identity_info_set_username (info, "James Bond");
+    signon_identity_info_set_secret (info, "007", TRUE);
+    signon_identity_info_set_caption (info, "caption");
+    signon_identity_info_set_access_control_list (info, acl);
+
+    signon_identity_store_credentials_with_info (identity,
+                                                 info,
                                                  new_identity_store_credentials_cb,
                                                  &id);
-    g_hash_table_destroy (methods);
+    signon_identity_info_free (info);
 
     if (id == 0)
         g_main_loop_run (main_loop);
@@ -849,20 +842,17 @@ START_TEST(test_store_credentials_identity)
     main_loop = g_main_loop_new (NULL, FALSE);
     gint last_id = new_identity();
 
-    GHashTable *methods = create_methods_hashtable();
+    SignonIdentityInfo *info = signon_identity_info_new ();
+    signon_identity_info_set_username (info, "James Bond");
+    signon_identity_info_set_secret (info, "007", TRUE);
+    signon_identity_info_set_caption (info, "caption");
+    add_methods_to_identity_info (info);
 
-    signon_identity_store_credentials_with_args (idty,
-                                                 "James Bond",
-                                                 "007",
-                                                 1,
-                                                 methods,
-                                                 "caption",
-                                                 NULL,
-                                                 NULL,
-                                                 0,
+    signon_identity_store_credentials_with_info (idty,
+                                                 info,
                                                  store_credentials_identity_cb,
                                                  &last_id);
-    g_hash_table_destroy (methods);
+    signon_identity_info_free (info);
 
     g_main_loop_run (main_loop);
 
@@ -891,25 +881,21 @@ START_TEST(test_verify_secret_identity)
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
 
-    GHashTable *methods = create_methods_hashtable();
-
-    gchar username[] = "James Bond";
     gchar secret[] = "007";
-    gchar caption[] = "caption";
-
     main_loop = g_main_loop_new (NULL, FALSE);
 
-    signon_identity_store_credentials_with_args (idty,
-                                                 username,
-                                                 secret,
-                                                 1,
-                                                 methods,
-                                                 caption,
-                                                 NULL,
-                                                 acl,
-                                                 0,
+    SignonIdentityInfo *info = signon_identity_info_new ();
+    signon_identity_info_set_username (info, "James Bond");
+    signon_identity_info_set_secret (info, secret, TRUE);
+    signon_identity_info_set_caption (info, "caption");
+    signon_identity_info_set_access_control_list (info, acl);
+    add_methods_to_identity_info (info);
+
+    signon_identity_store_credentials_with_info (idty,
+                                                 info,
                                                  store_credentials_identity_cb,
                                                  NULL);
+    signon_identity_info_free (info);
     g_main_loop_run (main_loop);
 
     signon_identity_verify_secret(idty,
@@ -919,7 +905,6 @@ START_TEST(test_verify_secret_identity)
 
     g_main_loop_run (main_loop);
 
-    g_hash_table_destroy (methods);
     g_object_unref (idty);
     end_test ();
 }
@@ -1082,36 +1067,26 @@ START_TEST(test_info_identity)
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
-    GHashTable *methods = create_methods_hashtable();
-    signon_identity_store_credentials_with_args (idty,
-                                                "James Bond",
-                                                "007",
-                                                 1,
-                                                 methods,
-                                                 "caption",
-                                                 NULL,
-                                                 acl,
-                                                 0,
+    info = signon_identity_info_new ();
+    signon_identity_info_set_username (info, "James Bond");
+    signon_identity_info_set_secret (info, "007", TRUE);
+    signon_identity_info_set_caption (info, "caption");
+    signon_identity_info_set_access_control_list (info, acl);
+    add_methods_to_identity_info (info);
+
+    signon_identity_store_credentials_with_info (idty,
+                                                 info,
                                                  store_credentials_identity_cb,
                                                  NULL);
-    g_hash_table_destroy (methods);
+    signon_identity_info_free (info);
+
     g_main_loop_run (main_loop);
 
     info = signon_identity_info_new ();
     signon_identity_info_set_username (info, "James Bond");
     signon_identity_info_set_secret (info, "007", TRUE);
     signon_identity_info_set_caption (info, "caption");
-
-    gchar *mechanisms[] = {
-            "mechanism1",
-            "mechanism2",
-            "mechanism3",
-            NULL
-    };
-
-    signon_identity_info_set_method (info, "method1", (const gchar **)mechanisms);
-    signon_identity_info_set_method (info, "method2", (const gchar **)mechanisms);
-    signon_identity_info_set_method (info, "method3", (const gchar **)mechanisms);
+    add_methods_to_identity_info (info);
 
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
