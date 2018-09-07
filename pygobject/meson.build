@@ -3,7 +3,7 @@ python_exec = find_program(['python3', 'python'])
 
 py_override_cmd = run_command(
     python_exec,
-    ['-c', 'import gi;print (gi._overridesdir)'],
+    ['-c', 'import gi;print (gi._overridesdir, end="")'],
 )
 
 if py_override_cmd.returncode() != 0
