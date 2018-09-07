@@ -66,7 +66,11 @@ signon_marshal = gnome.genmarshal(
 
 signon_enum_types = gnome.mkenums_simple(
     'signon-enum-types',
-    sources: 'signon-errors.h',
+    sources: [
+        'signon-errors.h',
+        'signon-identity-info.h',
+        'signon-auth-session.h',
+    ],
     install_header: true,
     install_dir: join_paths(get_option('includedir'), meson.project_name()),
 )
