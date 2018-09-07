@@ -87,6 +87,7 @@ libsignon_glib_deps = [
     gobject_dep,
 ]
 
+symbols_map = 'libsignon-glib.map'
 libsignon_glib_lib = shared_library(
     'signon-glib',
     libsignon_glib_public_headers,
@@ -100,6 +101,11 @@ libsignon_glib_lib = shared_library(
     signon_errors_map,
     dependencies: libsignon_glib_deps,
     include_directories: root_dir,
+    link_args : [
+        '-Wl,--no-undefined',
+        '-Wl,--version-script,' + join_paths(meson.current_source_dir(), symbols_map)
+    ],
+    link_depends : symbols_map,
     soversion: '1',
     version: '1.0.0',
     install: true,
