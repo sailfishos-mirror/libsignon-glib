@@ -21,7 +21,7 @@
     <para>
         signon_auth_service_query_mechanisms() has been changed into
         signon_auth_service_get_mechanisms(). There is no more custom callback
-        to use, only the #GAsyncResult API. use
+        to use, only the #GAsyncResult API. Use
         signon_auth_service_get_mechanisms_finish() in your #GAsyncReadyCallback
         to get the mechanisms.
     </para>
@@ -38,7 +38,7 @@
     <para>
         The long deprecated signon_auth_session_process() has been removed and
         the signon_auth_session_process_async() method has been renamed to
-        signon_auth_session_process() as Asynchronous methods are the default
+        signon_auth_session_process() as asynchronous methods are the default
         way to use this API.
     </para>
     <para>
@@ -51,7 +51,7 @@
     <title>Changes in #SignonIdentity</title>
     <para>
         signon_identity_store_credentials_with_args() has been completely
-        removed, only signon_identity_store_info() should be used
+        removed, only signon_identity_store_info() should be used.
     </para>
     <para>
         signon_identity_store_credentials_with_info() has been renamed
@@ -64,7 +64,7 @@
     </para>
     <para>
         The "id" property is now read-only and only settable at construction
-        time. there is a new signon_identity_get_id() method to easily get the
+        time. There is a new signon_identity_get_id() method to easily get the
         value of the property. The object now notifies when the property has
         changed with a property signal emition.
     </para>
@@ -79,7 +79,7 @@
         signal.
     </para>
     <para>
-        All the methods have been modified to use the #GAsyncResult API. use
+        All the methods have been modified to use the #GAsyncResult API. Use
         *_finish() in your #GAsyncReadyCallback to get the result of the
         operation.
     </para>

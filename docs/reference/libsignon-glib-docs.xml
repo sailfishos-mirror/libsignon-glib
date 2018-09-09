@@ -63,7 +63,7 @@
 
     <partintro>
       <para>
-        This part describes what you need to change in programs use
+        This part describes what you need to change in programs which use
         older versions of libsignon-glib so that they can use the new features.
       </para>
     </partintro>
