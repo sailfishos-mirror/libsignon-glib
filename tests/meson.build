@@ -20,14 +20,25 @@ test_env.set('SSO_EXTENSIONS_DIR', '/tmp') # this disables all extensions
 test_env.set('G_MESSAGES_DEBUG', 'all')
 
 dbus_test_runner = find_program('dbus-test-runner', required: false)
+
 if dbus_test_runner.found()
     message('Using dbus-test-runner')
+
+    signond = find_program('signond', required: false)
+    if (not signond.found())
+        signond = find_program('gsignond', required: false)
+    endif
+
+    if (not signond.found())
+        error('The signon or gsignon daemon is required to run the tests.')
+    endif
+
     test(
         meson.project_name(),
         dbus_test_runner,
         args: [
             '-m', '180', '--keep-env',
-            '-t', 'signond', '-r',
+            '-t', signond.path(), '-r',
             '-t', signon_glib_testsuite, '-f', 'com.google.code.AccountsSSO.SingleSignOn',
         ],
         timeout: 300, # Timeout after 5 minutes
