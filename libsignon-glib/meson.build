@@ -11,7 +11,6 @@ libsignon_glib_public_headers = files(
 libsignon_glib_private_headers = files(
     'signon-internals.h',
     'signon-proxy.h',
-    'signon-utils.h',
     'sso-auth-service.h',
 )
 
@@ -25,7 +24,6 @@ libsignon_glib_public_sources = files(
 
 libsignon_glib_sources = libsignon_glib_public_sources + files(
     'signon-proxy.c',
-    'signon-utils.c',
     'sso-auth-service.c',
 )
 

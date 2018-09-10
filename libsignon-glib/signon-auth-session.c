@@ -43,7 +43,6 @@
 #include "signon-errors.h"
 #include "signon-marshal.h"
 #include "signon-proxy.h"
-#include "signon-utils.h"
 #include "sso-auth-service.h"
 #include "sso-auth-session-gen.h"
 
@@ -542,7 +541,13 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
                                                                &object_path,
                                                                res,
                                                                &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
+    if (error != NULL &&
+        error->domain == G_IO_ERROR &&
+        error->code == G_IO_ERROR_CANCELLED)
+    {
+        g_error_free (error);
+        return;
+    }
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (userdata));
     SignonAuthSession *self = SIGNON_AUTH_SESSION (userdata);

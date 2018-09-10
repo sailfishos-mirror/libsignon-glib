@@ -35,10 +35,18 @@
 #include "signon-auth-session.h"
 #include "signon-internals.h"
 #include "signon-proxy.h"
-#include "signon-utils.h"
 #include "signon-errors.h"
 #include "sso-auth-service.h"
 #include "sso-identity-gen.h"
+
+#define SIGNON_RETURN_IF_CANCELLED(error) \
+    if (error != NULL && \
+        error->domain == G_IO_ERROR && \
+        error->code == G_IO_ERROR_CANCELLED) \
+    { \
+        g_error_free (error); \
+        return; \
+    }
 
 static void signon_identity_proxy_if_init (SignonProxyInterface *iface);
 static void signon_identity_set_id (SignonIdentity *identity, guint32 id);

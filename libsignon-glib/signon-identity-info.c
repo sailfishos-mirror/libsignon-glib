@@ -34,7 +34,6 @@
 #include "signon-identity-info.h"
 
 #include "signon-internals.h"
-#include "signon-utils.h"
 
 G_DEFINE_BOXED_TYPE (SignonIdentityInfo, signon_identity_info,
                      (GBoxedCopyFunc)signon_identity_info_copy,
