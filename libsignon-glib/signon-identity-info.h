@@ -81,6 +81,9 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info,
                                       const gchar* const *realms);
 void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
                                                    GList *access_control_list);
+void signon_identity_info_add_access_control (SignonIdentityInfo *info,
+                                              const gchar *system_context,
+                                              const gchar *application_context);
 void signon_identity_info_set_identity_type (SignonIdentityInfo *info,
                                              SignonIdentityType type);
 

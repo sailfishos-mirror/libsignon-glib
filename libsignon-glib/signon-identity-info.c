@@ -98,45 +98,47 @@ signon_identity_info_new_from_variant (GVariant *variant)
         return NULL;
 
     SignonIdentityInfo *info = signon_identity_info_new ();
+    GVariantDict dict;
+    g_variant_dict_init (&dict, variant);
 
     DEBUG("%s: ", G_STRFUNC);
 
-    g_variant_lookup (variant,
-                      "Id",
-                      "u",
-                      &info->id);
+    g_variant_dict_lookup (&dict,
+                           "Id",
+                           "u",
+                           &info->id);
 
-    g_variant_lookup (variant,
-                      "UserName",
-                      "s",
-                      &info->username);
+    g_variant_dict_lookup (&dict,
+                           "UserName",
+                           "s",
+                           &info->username);
 
-    if (g_variant_lookup (variant,
-                          "Secret",
-                          "s",
-                          &info->secret))
+    if (g_variant_dict_lookup (&dict,
+                               "Secret",
+                               "s",
+                               &info->secret))
     {
-        g_variant_lookup (variant,
-                          "StoreSecret",
-                          "b",
-                          &info->store_secret);
+        g_variant_dict_lookup (&dict,
+                               "StoreSecret",
+                               "b",
+                               &info->store_secret);
     }
 
-    g_variant_lookup (variant,
-                      "Caption",
-                      "s",
-                      &info->caption);
+    g_variant_dict_lookup (&dict,
+                           "Caption",
+                           "s",
+                           &info->caption);
 
-    g_variant_lookup (variant,
-                      "Realms",
-                      "^as",
-                      &info->realms);
+    g_variant_dict_lookup (&dict,
+                           "Realms",
+                           "^as",
+                           &info->realms);
 
     /* get the methods */
-    if (g_variant_lookup (variant,
-                          "AuthMethods",
-                          "@a{sas}",
-                          &method_map))
+    method_map = g_variant_dict_lookup_value (&dict,
+                                              "AuthMethods",
+                                              (const GVariantType *) "a{sas}");
+    if (method_map != NULL)
     {
         GVariantIter iter;
         gchar *method = NULL;
@@ -150,10 +152,10 @@ signon_identity_info_new_from_variant (GVariant *variant)
         g_variant_unref (method_map);
     }
 
-    if (g_variant_lookup (variant,
-                          "ACL",
-                          "a(ss)",
-                          &acl_var))
+    acl_var = g_variant_dict_lookup_value (&dict,
+                                           "ACL",
+                                           (const GVariantType *) "a(ss)");
+    if (acl_var != NULL)
     {
         GVariantIter iter;
         GVariant *child = NULL;
@@ -173,10 +175,10 @@ signon_identity_info_new_from_variant (GVariant *variant)
         g_variant_unref (acl_var);
     }
 
-    g_variant_lookup (variant,
-                      "Type",
-                      "u",
-                      &info->type);
+    g_variant_dict_lookup (&dict,
+                           "Type",
+                           "u",
+                           &info->type);
 
     return info;
 }
@@ -591,7 +593,7 @@ void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
  * @system_context: the system context to add.
  * @application_context: the application context to add.
  *
- * Add an ACL to this identity. This is a helper function.
+ * Add an ACL to this identity. This is an helper function.
  */
 void signon_identity_info_add_access_control (SignonIdentityInfo *info,
                                               const gchar *system_context,

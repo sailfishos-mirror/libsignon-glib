@@ -31,5 +31,6 @@
 #include <libsignon-glib/signon-errors.h>
 #include <libsignon-glib/signon-identity-info.h>
 #include <libsignon-glib/signon-identity.h>
+#include <libsignon-glib/signon-security-context.h>
 
 #endif /* SIGNON_GLIB_H */
