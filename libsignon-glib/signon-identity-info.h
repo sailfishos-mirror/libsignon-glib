@@ -66,7 +66,7 @@ gboolean signon_identity_info_get_storing_secret (const SignonIdentityInfo *info
 const gchar *signon_identity_info_get_caption (const SignonIdentityInfo *info);
 const GHashTable *signon_identity_info_get_methods (const SignonIdentityInfo *info);
 const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *info);
-const gchar* const *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info);
+GList *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info);
 SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityInfo *info);
 
 void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username);
@@ -80,7 +80,7 @@ void signon_identity_info_remove_method (SignonIdentityInfo *info, const gchar *
 void signon_identity_info_set_realms (SignonIdentityInfo *info,
                                       const gchar* const *realms);
 void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
-                                                   const gchar* const *access_control_list);
+                                                   GList *access_control_list);
 void signon_identity_info_set_identity_type (SignonIdentityInfo *info,
                                              SignonIdentityType type);
 

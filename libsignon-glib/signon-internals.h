@@ -38,6 +38,7 @@
 
 #include "signon-identity.h"
 #include "signon-auth-session.h"
+#include "signon-security-context.h"
 
 G_BEGIN_DECLS
 
@@ -50,8 +51,14 @@ struct _SignonIdentityInfo
     gboolean store_secret;
     GHashTable *methods;
     gchar **realms;
-    gchar **access_control_list;
+    GList *access_control_list;
     gint type;
+};
+
+struct _SignonSecurityContext
+{
+    gchar *system_context;
+    gchar *application_context;
 };
 
 #define SIGNOND_SERVICE_PREFIX "com.google.code.AccountsSSO.SingleSignOn"
@@ -117,6 +124,14 @@ signon_identity_info_new_from_variant (GVariant *variant);
 G_GNUC_INTERNAL
 GVariant *
 signon_identity_info_to_variant (const SignonIdentityInfo *self);
+
+G_GNUC_INTERNAL
+SignonSecurityContext *
+signon_security_context_new_from_variant (GVariant *variant);
+
+G_GNUC_INTERNAL
+GVariant *
+signon_security_context_to_variant (const SignonSecurityContext *self);
 
 G_GNUC_INTERNAL
 void signon_identity_info_set_methods (SignonIdentityInfo *self,

@@ -43,7 +43,10 @@ G_DEFINE_BOXED_TYPE (SignonIdentityInfo, signon_identity_info,
 static GVariant *
 signon_variant_new_string (const gchar *string)
 {
-    return g_variant_new_string (string != NULL ? string : "");
+    if (string == NULL || !g_utf8_validate (string, -1, NULL))
+        return g_variant_new_string ("");
+
+    return g_variant_new_string (string);
 }
 
 static const gchar *identity_info_get_secret (const SignonIdentityInfo *info)
@@ -88,7 +91,8 @@ void signon_identity_info_set_methods (SignonIdentityInfo *info,
 SignonIdentityInfo *
 signon_identity_info_new_from_variant (GVariant *variant)
 {
-    GVariant *method_map;
+    GVariant *method_map = NULL;
+    GVariant *acl_var = NULL;
 
     if (!variant)
         return NULL;
@@ -135,8 +139,8 @@ signon_identity_info_new_from_variant (GVariant *variant)
                           &method_map))
     {
         GVariantIter iter;
-        gchar *method;
-        gchar **mechanisms;
+        gchar *method = NULL;
+        gchar **mechanisms = NULL;
 
         g_variant_iter_init (&iter, method_map);
         while (g_variant_iter_next (&iter, "{s^as}", &method, &mechanisms))
@@ -146,10 +150,28 @@ signon_identity_info_new_from_variant (GVariant *variant)
         g_variant_unref (method_map);
     }
 
-    g_variant_lookup (variant,
-                      "ACL",
-                      "^as",
-                      &info->access_control_list);
+    if (g_variant_lookup (variant,
+                          "ACL",
+                          "a(ss)",
+                          &acl_var))
+    {
+        GVariantIter iter;
+        GVariant *child = NULL;
+        GList *acl_list = NULL;
+
+        g_variant_iter_init (&iter, acl_var);
+        while ((child = g_variant_iter_next_value (&iter)))
+        {
+            SignonSecurityContext *ctx = signon_security_context_new_from_variant (child);
+            if (ctx != NULL)
+                acl_list = g_list_append (acl_list, ctx);
+
+            g_variant_unref (child);
+        }
+
+        info->access_control_list = acl_list;
+        g_variant_unref (acl_var);
+    }
 
     g_variant_lookup (variant,
                       "Type",
@@ -219,11 +241,20 @@ signon_identity_info_to_variant (const SignonIdentityInfo *self)
 
     if (self->access_control_list != NULL)
     {
+        GVariantBuilder acl_builder;
+
+        g_variant_builder_init (&acl_builder, (const GVariantType *)"a(ss)");
+        GList *l;
+        for (l = self->access_control_list; l != NULL; l = l->next)
+        {
+            GVariant* acl_var = signon_security_context_to_variant (l->data);
+            if (acl_var != NULL)
+                g_variant_builder_add_value (&acl_builder, acl_var);
+        }
+
         g_variant_builder_add (&builder, "{sv}",
                                "ACL",
-                               g_variant_new_strv ((const gchar * const *)
-                                                   self->access_control_list,
-                                                   -1));
+                               g_variant_builder_end (&acl_builder));
     }
 
     g_variant_builder_add (&builder, "{sv}",
@@ -271,7 +302,8 @@ void signon_identity_info_free (SignonIdentityInfo *info)
     g_hash_table_destroy (info->methods);
 
     g_strfreev (info->realms);
-    g_strfreev (info->access_control_list);
+
+    g_list_free_full (info->access_control_list, (GDestroyNotify)signon_security_context_free);
 
     g_slice_free (SignonIdentityInfo, info);
 }
@@ -402,12 +434,14 @@ const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *i
  *
  * Get an array of ACL statements of the identity.
  *
- * Returns: (transfer none): a %NULL terminated array of ACL statements.
+ * Returns: (transfer full) (element-type SignonSecurityContext): a #GList of
+ * #SignonSecurityContext representing ACL statements.
+ * Each element should be freed with signon_security_context_copy() after use.
  */
-const gchar* const *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
+GList *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
-    return (const gchar* const *)info->access_control_list;
+    return g_list_copy_deep (info->access_control_list, (GCopyFunc)signon_security_context_copy, NULL);
 }
 
 /**
@@ -535,20 +569,42 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info,
 /**
  * signon_identity_info_set_access_control_list:
  * @info: the #SignonIdentityInfo.
- * @access_control_list: (array zero-terminated=1): a %NULL-terminated list
- * of ACL security domains.
+ * @access_control_list: (element-type SignonSecurityContext): a #GList of 
+ * #SignonSecurityContext representing ACL security domains.
  *
  * Specifies the ACL for this identity. The actual meaning of the ACL depends
  * on the security framework used by signond.
  */
 void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
-                                                   const gchar* const *access_control_list)
+                                                   GList *access_control_list)
 {
     g_return_if_fail (info != NULL);
 
-    if (info->access_control_list) g_strfreev (info->access_control_list);
+    if (info->access_control_list) g_list_free_full (info->access_control_list, (GDestroyNotify)signon_security_context_free);
 
-    info->access_control_list = g_strdupv ((gchar **)access_control_list);
+    info->access_control_list = g_list_copy_deep (access_control_list, (GCopyFunc)signon_security_context_copy, NULL);
+}
+
+/**
+ * signon_identity_info_add_access_control:
+ * @info: the #SignonIdentityInfo.
+ * @system_context: the system context to add.
+ * @application_context: the application context to add.
+ *
+ * Add an ACL to this identity. This is a helper function.
+ */
+void signon_identity_info_add_access_control (SignonIdentityInfo *info,
+                                              const gchar *system_context,
+                                              const gchar *application_context)
+{
+    SignonSecurityContext *ctx = NULL;
+
+    g_return_if_fail (info != NULL);
+    g_return_if_fail (system_context != NULL);
+    g_return_if_fail (application_context != NULL);
+
+    ctx = signon_security_context_new_from_values (system_context, application_context);
+    info->access_control_list = g_list_append (info->access_control_list, ctx);
 }
 
 /**

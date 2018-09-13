@@ -5,6 +5,7 @@ libsignon_glib_public_headers = files(
     'signon-identity.h',
     'signon-identity-info.h',
     'signon-glib.h',
+    'signon-security-context.h',
     'signon-types.h',
 )
 
@@ -20,6 +21,7 @@ libsignon_glib_public_sources = files(
     'signon-errors.c',
     'signon-identity.c',
     'signon-identity-info.c',
+    'signon-security-context.c',
 )
 
 libsignon_glib_sources = libsignon_glib_public_sources + files(

@@ -83,5 +83,11 @@
         *_finish() in your #GAsyncReadyCallback to get the result of the
         operation.
     </para>
+    <para>
+        signon_identity_info_get_access_control_list() and
+        signon_identity_info_set_access_control_list() now make use of the new
+        #SignonSecurityContext structure that replaces the simple security
+        context string.
+    </para>
   </section>
 </chapter>
