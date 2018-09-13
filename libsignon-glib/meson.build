@@ -29,7 +29,15 @@ libsignon_glib_sources = libsignon_glib_public_sources + files(
 
 sso_interface_prefix = 'com.google.code.AccountsSSO.SingleSignOn.'
 
-dbus_auth_service_xml = files (join_paths('interfaces', 'com.google.code.AccountsSSO.SingleSignOn.AuthService.xml'))
+dbus_auth_service_xml = join_paths('interfaces', 'com.google.code.AccountsSSO.SingleSignOn.AuthService.xml')
+dbus_auth_session_xml = join_paths('interfaces', 'com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml')
+dbus_identity_xml = join_paths('interfaces', 'com.google.code.AccountsSSO.SingleSignOn.Identity.xml')
+if (meson.version().version_compare('<0.47.2'))
+    dbus_auth_service_xml = 'com.google.code.AccountsSSO.SingleSignOn.AuthService.xml'
+    dbus_auth_session_xml = 'com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml'
+    dbus_identity_xml = 'com.google.code.AccountsSSO.SingleSignOn.Identity.xml'
+endif
+
 dbus_auth_service_gen = gnome.gdbus_codegen(
     'sso-auth-service-gen',
     dbus_auth_service_xml,
@@ -38,7 +46,6 @@ dbus_auth_service_gen = gnome.gdbus_codegen(
     docbook: 'sso-auth-service-gen-doc',
 )
 
-dbus_auth_session_xml = files (join_paths('interfaces', 'com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml'))
 dbus_auth_session_gen = gnome.gdbus_codegen(
     'sso-auth-session-gen',
     dbus_auth_session_xml,
@@ -47,7 +54,6 @@ dbus_auth_session_gen = gnome.gdbus_codegen(
     docbook: 'sso-auth-session-gen-doc',
 )
 
-dbus_identity_xml = files (join_paths('interfaces', 'com.google.code.AccountsSSO.SingleSignOn.Identity.xml'))
 dbus_identity_gen = gnome.gdbus_codegen(
     'sso-identity-gen',
     dbus_identity_xml,
