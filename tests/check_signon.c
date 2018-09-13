@@ -1075,12 +1075,12 @@ static void identity_info_cb (GObject *source_object,
 
 static SignonIdentityInfo *create_standard_info()
 {
-    GList *acl = g_list_append (NULL, signon_security_context_new_from_values ("*", "*"));
     g_debug("%s", G_STRFUNC);
     SignonIdentityInfo *info = signon_identity_info_new ();
     signon_identity_info_set_username (info, "James Bond");
     signon_identity_info_set_secret (info, "007", TRUE);
     signon_identity_info_set_caption (info, "caption");
+    signon_identity_info_add_access_control (info, "*", "*");
 
     gchar *mechanisms[] = {
             "mechanism1",
@@ -1092,9 +1092,6 @@ static SignonIdentityInfo *create_standard_info()
     signon_identity_info_set_method (info, "method1", (const gchar **)mechanisms);
     signon_identity_info_set_method (info, "method2", (const gchar **)mechanisms);
     signon_identity_info_set_method (info, "method3", (const gchar **)mechanisms);
-
-    signon_identity_info_set_access_control_list (info, acl);
-    g_list_free_full (acl, (GDestroyNotify)signon_security_context_free);
 
     return info;
 }
