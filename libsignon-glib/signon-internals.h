@@ -52,7 +52,7 @@ struct _SignonIdentityInfo
     GHashTable *methods;
     gchar **realms;
     GList *access_control_list;
-    gint type;
+    SignonIdentityType type;
 };
 
 struct _SignonSecurityContext

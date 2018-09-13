@@ -261,7 +261,7 @@ signon_identity_info_to_variant (const SignonIdentityInfo *self)
 
     g_variant_builder_add (&builder, "{sv}",
                            "Type",
-                           g_variant_new_int32 (self->type));
+                           g_variant_new_uint32 (self->type));
 
     return g_variant_builder_end (&builder);
 }
@@ -457,7 +457,7 @@ GList *signon_identity_info_get_access_control_list (const SignonIdentityInfo *i
 SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, -1);
-    return (SignonIdentityType)info->type;
+    return info->type;
 }
 
 /**
@@ -620,5 +620,5 @@ void signon_identity_info_set_identity_type (SignonIdentityInfo *info,
                                              SignonIdentityType type)
 {
     g_return_if_fail (info != NULL);
-    info->type = (gint)type;
+    info->type = type;
 }
