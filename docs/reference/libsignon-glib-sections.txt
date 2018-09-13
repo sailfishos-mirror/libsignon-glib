@@ -36,9 +36,9 @@ SIGNON_SESSION_DATA_USERNAME
 SIGNON_SESSION_DATA_WINDOW_ID
 SignonAuthSession
 SignonSessionDataUiPolicy
+signon_auth_session_new
 signon_auth_session_cancel
 signon_auth_session_get_method
-signon_auth_session_new
 signon_auth_session_process
 signon_auth_session_process_finish
 <SUBSECTION Private>
@@ -75,10 +75,10 @@ signon_error_get_type
 <FILE>signon-identity</FILE>
 <TITLE>SignonIdentity</TITLE>
 SignonIdentity
-signon_identity_create_session
-signon_identity_get_last_error
 signon_identity_new
 signon_identity_new_from_db
+signon_identity_create_session
+signon_identity_get_last_error
 signon_identity_get_id
 signon_identity_query_info
 signon_identity_query_info_finish
@@ -108,8 +108,10 @@ signon_identity_get_type
 <TITLE>SignonIdentityInfo</TITLE>
 SignonIdentityInfo
 SignonIdentityType
+signon_identity_info_new
 signon_identity_info_copy
 signon_identity_info_free
+signon_identity_info_add_access_control
 signon_identity_info_get_access_control_list
 signon_identity_info_get_caption
 signon_identity_info_get_id
@@ -118,7 +120,6 @@ signon_identity_info_get_methods
 signon_identity_info_get_realms
 signon_identity_info_get_storing_secret
 signon_identity_info_get_username
-signon_identity_info_new
 signon_identity_info_remove_method
 signon_identity_info_set_access_control_list
 signon_identity_info_set_caption
@@ -130,5 +131,20 @@ signon_identity_info_set_username
 <SUBSECTION Standard>
 SIGNON_TYPE_IDENTITY_TYPE
 signon_identity_info_get_type
-signon_identity_type_get_type
+</SECTION>
+
+<SECTION>
+<FILE>signon-security-context</FILE>
+<TITLE>SignonSecurityContext</TITLE>
+SignonSecurityContext
+signon_security_context_new
+signon_security_context_new_from_values
+signon_security_context_copy
+signon_security_context_free
+signon_security_context_get_application_context
+signon_security_context_get_system_context
+signon_security_context_set_application_context
+signon_security_context_set_system_context
+<SUBSECTION Standard>
+signon_security_context_get_type
 </SECTION>

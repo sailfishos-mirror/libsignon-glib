@@ -39,6 +39,7 @@
       <xi:include href="xml/signon-errors.xml"/>
       <xi:include href="xml/signon-identity.xml"/>
       <xi:include href="xml/signon-identity-info.xml"/>
+      <xi:include href="xml/signon-security-context.xml"/>
     </chapter>
   </part>
 
