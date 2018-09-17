@@ -1,5 +1,16 @@
 libsignon-glib NEWS
 
+Version 2.0
+-----------
+
+* Support new signond 8.60
+* New SignonSecurityContext with system and application contexts
+* Add signon_list_available_mechanisms() method
+* Remove a couple of obsolete methods
+* Use the GTask API
+* Build: switch to Meson build system
+* Tests: increase code coverage
+
 Version 1.15
 ------------
 
