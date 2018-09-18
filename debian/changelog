@@ -1,3 +1,9 @@
+libsignon-glib (2.0) bionic; urgency=medium
+
+  * New upstream release.
+
+ -- Corentin Noël <corentin@elementary.io>  Tue, 18 Sep 2018 07:59:15 +0100
+
 libsignon-glib (1.15) bionic; urgency=medium
 
   * New upstream release.
