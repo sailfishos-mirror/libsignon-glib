@@ -16,7 +16,7 @@ if get_option('tests')
     check_dep = dependency('check', version: '>=0.9.4')
 endif
 
-if get_option('debug')
+if get_option('debugging')
     add_project_arguments('-DENABLE_DEBUG=1', language : 'c')
 endif
 

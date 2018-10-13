@@ -31,7 +31,7 @@ build_amd64:
   stage: build
   script:
     - export PYTHON=python3
-    - meson build -Ddebug=true -Ddocumentation=true -Db_coverage=true
+    - meson build -Ddebugging=true -Ddocumentation=true -Db_coverage=true
     - ninja -C build
   artifacts:
     paths:
