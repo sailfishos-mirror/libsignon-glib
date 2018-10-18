@@ -127,6 +127,7 @@ libsignon_glib_dep = declare_dependency(
     link_with: libsignon_glib_lib,
     dependencies: libsignon_glib_deps,
     include_directories: [root_dir, libsignon_glib_dir],
+    sources: signon_enum_types[1],
 )
 
 libsignon_glib_pkgs = [
