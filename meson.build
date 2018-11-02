@@ -1,5 +1,5 @@
 project('libsignon-glib', 'c',
-    version: '2.0'
+    version: '2.1'
 )
 
 library_major = '2'
