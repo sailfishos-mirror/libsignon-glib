@@ -109,38 +109,8 @@ typedef enum {
 #define SIGNON_SESSION_DATA_RENEW_TOKEN   "RenewToken"
 
 
-#define SIGNON_TYPE_AUTH_SESSION                 (signon_auth_session_get_type ())
-#define SIGNON_AUTH_SESSION(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSession))
-#define SIGNON_AUTH_SESSION_CLASS(klass)         (G_TYPE_CHECK_CLASS_CAST ((klass), SIGNON_TYPE_AUTH_SESSION, SignonAuthSessionClass))
-#define SIGNON_IS_AUTH_SESSION(obj)              (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SIGNON_TYPE_AUTH_SESSION))
-#define SIGNON_IS_AUTH_SESSION_CLASS(klass)      (G_TYPE_CHECK_CLASS_TYPE ((klass), SIGNON_TYPE_AUTH_SESSION))
-#define SIGNON_AUTH_SESSION_GET_CLASS(obj)       (G_TYPE_INSTANCE_GET_CLASS ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSessionClass))
-
-typedef struct _SignonAuthSession        SignonAuthSession;
-typedef struct _SignonAuthSessionPrivate SignonAuthSessionPrivate;
-typedef struct _SignonAuthSessionClass   SignonAuthSessionClass;
-
-/**
- * SignonAuthSession:
- *
- * Opaque struct. Use the accessor functions below.
- */
-struct _SignonAuthSession {
-    GObject parent;
-
-    SignonAuthSessionPrivate *priv;
-};
-
-/**
- * SignonAuthSessionClass:
- *
- * Opaque struct. Use the accessor functions below.
- */
-struct _SignonAuthSessionClass {
-    GObjectClass parent;
-};
-
-GType signon_auth_session_get_type (void) G_GNUC_CONST;
+#define SIGNON_TYPE_AUTH_SESSION signon_auth_session_get_type ()
+G_DECLARE_FINAL_TYPE (SignonAuthSession, signon_auth_session, SIGNON, AUTH_SESSION, GObject)
 
 SignonAuthSession *signon_auth_session_new(gint id,
                                            const gchar *method_name,

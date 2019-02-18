@@ -48,6 +48,37 @@
 
 static void signon_auth_session_proxy_if_init (SignonProxyInterface *iface);
 
+/**
+ * SignonAuthSession:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
+
+/**
+ * SignonAuthSessionClass:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
+struct _SignonAuthSession
+{
+  GObject parent_instance;
+
+  SsoAuthSession *proxy;
+  SsoAuthService *auth_service_proxy;
+  GCancellable *cancellable;
+
+  gint id;
+  gchar *method_name;
+
+  gboolean registering;
+  gboolean busy;
+  gboolean canceled;
+  gboolean dispose_has_run;
+
+  guint signal_state_changed;
+  guint signal_unregistered;
+};
+
 G_DEFINE_TYPE_WITH_CODE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (SIGNON_TYPE_PROXY,
                                                 signon_auth_session_proxy_if_init))
@@ -63,24 +94,6 @@ enum
 static guint auth_session_signals[LAST_SIGNAL] = { 0 };
 static const gchar auth_session_process_pending_message[] =
     "The request is added to queue.";
-
-struct _SignonAuthSessionPrivate
-{
-    SsoAuthSession *proxy;
-    SsoAuthService *auth_service_proxy;
-    GCancellable *cancellable;
-
-    gint id;
-    gchar *method_name;
-
-    gboolean registering;
-    gboolean busy;
-    gboolean canceled;
-    gboolean dispose_has_run;
-
-    guint signal_state_changed;
-    guint signal_unregistered;
-};
 
 enum SignonAuthSessionState {
     SIGNON_AUTH_SESSION_STATE_NOT_STARTED = 0,   /* No message. */
@@ -112,10 +125,6 @@ typedef struct _AuthSessionProcessData
     GVariant *session_data;
     gchar *mechanism;
 } AuthSessionProcessData;
-
-#define SIGNON_AUTH_SESSION_PRIV(obj) (SIGNON_AUTH_SESSION(obj)->priv)
-#define SIGNON_AUTH_SESSION_GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSessionPrivate))
-
 
 static void auth_session_state_changed_cb (GDBusProxy *proxy, gint state, gchar *message, gpointer user_data);
 static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy, gpointer user_data);
@@ -150,7 +159,7 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
     sso_auth_session_call_process_finish (proxy, &reply, res, &error);
 
     self = SIGNON_AUTH_SESSION (g_task_get_source_object (res_process));
-    self->priv->busy = FALSE;
+    self->busy = FALSE;
 
     if (G_LIKELY (error == NULL))
     {
@@ -169,12 +178,10 @@ static void
 auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data)
 {
     SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv;
     GTask *res = G_TASK (user_data);
     AuthSessionProcessData *process_data;
 
     g_return_if_fail (self != NULL);
-    priv = self->priv;
 
     if (error != NULL)
     {
@@ -184,10 +191,10 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         return;
     }
 
-    if (priv->canceled)
+    if (self->canceled)
     {
-        priv->busy = FALSE;
-        priv->canceled = FALSE;
+        self->busy = FALSE;
+        self->canceled = FALSE;
         g_task_return_new_error (res,
                                  signon_error_quark (),
                                  SIGNON_ERROR_SESSION_CANCELED,
@@ -199,7 +206,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
     process_data = g_task_get_task_data (res);
     g_return_if_fail (process_data != NULL);
 
-    sso_auth_session_call_process (priv->proxy,
+    sso_auth_session_call_process (self->proxy,
                                    process_data->session_data,
                                    process_data->mechanism,
                                    g_task_get_cancellable (res),
@@ -214,13 +221,14 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
 }
 
 static void
-destroy_proxy (SignonAuthSessionPrivate *priv)
+destroy_proxy (SignonAuthSession *self)
 {
-    g_signal_handler_disconnect (priv->proxy, priv->signal_state_changed);
-    g_signal_handler_disconnect (priv->proxy, priv->signal_unregistered);
-    g_object_unref (priv->proxy);
+    g_signal_handler_disconnect (self->proxy, self->signal_state_changed);
+    self->signal_state_changed = 0;
+    g_signal_handler_disconnect (self->proxy, self->signal_unregistered);
+    self->signal_unregistered = 0;
 
-    priv->proxy = NULL;
+    g_clear_object (&self->proxy);
 }
 
 static GQuark
@@ -249,53 +257,49 @@ signon_auth_session_proxy_if_init (SignonProxyInterface *iface)
 static void
 signon_auth_session_init (SignonAuthSession *self)
 {
-    self->priv = SIGNON_AUTH_SESSION_GET_PRIV (self);
-    self->priv->auth_service_proxy = sso_auth_service_get_instance ();
-    self->priv->cancellable = g_cancellable_new ();
+    self->auth_service_proxy = sso_auth_service_get_instance ();
+    self->cancellable = g_cancellable_new ();
 }
 
 static void
 signon_auth_session_dispose (GObject *object)
 {
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    SignonAuthSession *self;
 
-    if (priv->dispose_has_run)
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
+
+    self = SIGNON_AUTH_SESSION (object);
+    if (self->dispose_has_run)
         return;
 
-    if (priv->cancellable)
+    if (self->cancellable)
     {
-        g_cancellable_cancel (priv->cancellable);
-        g_object_unref (priv->cancellable);
-        priv->cancellable = NULL;
+        g_cancellable_cancel (self->cancellable);
+        g_clear_object (&self->cancellable);
     }
 
-    if (priv->proxy)
-        destroy_proxy (priv);
+    if (self->proxy)
+        destroy_proxy (self);
 
-    if (priv->auth_service_proxy)
+    if (self->auth_service_proxy)
     {
-        g_object_unref (priv->auth_service_proxy);
-        priv->auth_service_proxy = NULL;
+        g_clear_object (&self->auth_service_proxy);
     }
 
     G_OBJECT_CLASS (signon_auth_session_parent_class)->dispose (object);
 
-    priv->dispose_has_run = TRUE;
+    self->dispose_has_run = TRUE;
 }
 
 static void
 signon_auth_session_finalize (GObject *object)
 {
+    SignonAuthSession *self;
+  
     g_return_if_fail (SIGNON_IS_AUTH_SESSION(object));
 
-    SignonAuthSession *self = SIGNON_AUTH_SESSION(object);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
-    g_free (priv->method_name);
+    self = SIGNON_AUTH_SESSION(object);
+    g_clear_pointer (&self->method_name, g_free);
 
     G_OBJECT_CLASS (signon_auth_session_parent_class)->finalize (object);
 }
@@ -304,8 +308,6 @@ static void
 signon_auth_session_class_init (SignonAuthSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (object_class, sizeof (SignonAuthSessionPrivate));
 
     /**
      * SignonAuthSession::state-changed:
@@ -369,6 +371,10 @@ auth_session_set_id_ready_cb (gpointer object,
                               const GError *error,
                               gpointer user_data)
 {
+    SignonAuthSession *self;
+    GError *err = NULL;
+    gint id = GPOINTER_TO_INT(user_data);
+
     if (error)
     {
         g_warning ("%s returned error: %s", G_STRFUNC, error->message);
@@ -376,18 +382,12 @@ auth_session_set_id_ready_cb (gpointer object,
     }
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
-    gint id = GPOINTER_TO_INT(user_data);
-
-    GError *err = NULL;
-    sso_auth_session_call_set_id_sync (priv->proxy,
+    self = SIGNON_AUTH_SESSION (object);
+    sso_auth_session_call_set_id_sync (self->proxy,
                                        id,
-                                       priv->cancellable,
+                                       self->cancellable,
                                        &err);
-    priv->id = id;
+    self->id = id;
 
     if (err)
         g_warning ("%s returned error: %s", G_STRFUNC, err->message);
@@ -421,11 +421,8 @@ const gchar *
 signon_auth_session_get_method (SignonAuthSession *self)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
-    SignonAuthSessionPrivate *priv = self->priv;
 
-    g_return_val_if_fail (priv != NULL, NULL);
-
-    return priv->method_name;
+    return self->method_name;
 }
 
 /**
@@ -455,13 +452,10 @@ signon_auth_session_process (SignonAuthSession *self,
                              GAsyncReadyCallback callback,
                              gpointer user_data)
 {
-    SignonAuthSessionPrivate *priv;
     AuthSessionProcessData *process_data;
     GTask *task = NULL;
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
-    priv = self->priv;
-
     g_return_if_fail (session_data != NULL);
 
     task = g_task_new (self, cancellable, callback, user_data);
@@ -471,7 +465,7 @@ signon_auth_session_process (SignonAuthSession *self,
     process_data->mechanism = g_strdup (mechanism);
     g_task_set_task_data (task, process_data, (GDestroyNotify)auth_session_process_data_free);
 
-    priv->busy = TRUE;
+    self->busy = TRUE;
 
     signon_proxy_call_when_ready (self,
                                   auth_session_object_quark(),
@@ -497,12 +491,9 @@ GVariant *
 signon_auth_session_process_finish (SignonAuthSession *self, GAsyncResult *res,
                                     GError **error)
 {
-    GTask *task;
-
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
 
-    task = G_TASK (res);
-    return g_task_propagate_pointer (task, error);
+    return g_task_propagate_pointer (G_TASK (res), error);
 }
 
 /**
@@ -515,14 +506,11 @@ void
 signon_auth_session_cancel (SignonAuthSession *self)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
-    SignonAuthSessionPrivate *priv = self->priv;
 
-    g_return_if_fail (priv != NULL);
-
-    if (!priv->busy)
+    if (!self->busy)
         return;
 
-    priv->canceled = TRUE;
+    self->canceled = TRUE;
     signon_proxy_call_when_ready (self,
                                   auth_session_object_quark(),
                                   auth_session_cancel_ready_cb,
@@ -536,6 +524,7 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
     SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
     gchar *object_path = NULL;
     GError *error = NULL;
+    SignonAuthSession *self = NULL;
 
     sso_auth_service_call_get_auth_session_object_path_finish (proxy,
                                                                &object_path,
@@ -550,11 +539,9 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
     }
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (userdata));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (userdata);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    self = SIGNON_AUTH_SESSION (userdata);
 
-    priv->registering = FALSE;
+    self->registering = FALSE;
     if (!g_strcmp0(object_path, "") || error)
     {
         if (error)
@@ -573,12 +560,12 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
         connection = g_dbus_proxy_get_connection ((GDBusProxy *)proxy);
         bus_name = g_dbus_proxy_get_name ((GDBusProxy *)proxy);
 
-        priv->proxy =
+        self->proxy =
             sso_auth_session_proxy_new_sync (connection,
                                              G_DBUS_PROXY_FLAGS_NONE,
                                              bus_name,
                                              object_path,
-                                             priv->cancellable,
+                                             self->cancellable,
                                              &proxy_error);
         if (G_UNLIKELY (proxy_error != NULL))
         {
@@ -587,17 +574,17 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
             g_clear_error (&proxy_error);
         }
 
-        g_dbus_proxy_set_default_timeout ((GDBusProxy *)priv->proxy,
+        g_dbus_proxy_set_default_timeout ((GDBusProxy *)self->proxy,
                                           G_MAXINT);
 
-        priv->signal_state_changed =
-            g_signal_connect (priv->proxy,
+        self->signal_state_changed =
+            g_signal_connect (self->proxy,
                               "state-changed",
                               G_CALLBACK (auth_session_state_changed_cb),
                               self);
 
-        priv->signal_unregistered =
-           g_signal_connect (priv->proxy,
+        self->signal_unregistered =
+           g_signal_connect (self->proxy,
                              "unregistered",
                              G_CALLBACK (auth_session_remote_object_destroyed_cb),
                              self);
@@ -614,27 +601,29 @@ auth_session_state_changed_cb (GDBusProxy *proxy,
                                gchar *message,
                                gpointer user_data)
 {
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (user_data);
+    SignonAuthSession *self;
 
-    g_signal_emit ((GObject *)self,
-                    auth_session_signals[STATE_CHANGED],
-                    0,
-                    state,
-                    message);
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
+
+    self = SIGNON_AUTH_SESSION (user_data);
+    g_signal_emit (self,
+                   auth_session_signals[STATE_CHANGED],
+                   0,
+                   state,
+                   message);
 }
 
 static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy,
                                                      gpointer user_data)
 {
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (user_data);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-    DEBUG ("remote object unregistered");
+    SignonAuthSession *self;
 
-    if (priv->proxy)
-        destroy_proxy (priv);
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
+
+    self = SIGNON_AUTH_SESSION (user_data);
+    DEBUG ("remote object unregistered");
+    if (self->proxy)
+        destroy_proxy (self);
 
     signon_proxy_set_not_ready (self);
 }
@@ -644,27 +633,25 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
                         const gchar *method_name, GError **err)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), FALSE);
-    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
-    g_return_val_if_fail (priv, FALSE);
 
-    priv->id = id;
-    priv->method_name = g_strdup (method_name);
+    self->id = id;
+    self->method_name = g_strdup (method_name);
 
-    priv->registering = FALSE;
-    priv->busy = FALSE;
-    priv->canceled = FALSE;
+    self->registering = FALSE;
+    self->busy = FALSE;
+    self->canceled = FALSE;
     return TRUE;
 }
 
 static void
 auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data)
 {
+    SignonAuthSession *self;
+
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
     g_return_if_fail (user_data == NULL);
 
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    self = SIGNON_AUTH_SESSION (object);
 
     if (error)
     {
@@ -672,36 +659,34 @@ auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer use
         // that is why I think it should not emit anything for this particular case
         DEBUG("error during initialization");
     }
-    else if (priv->proxy && priv->busy)
-        sso_auth_session_call_cancel_sync (priv->proxy,
-                                           priv->cancellable,
+    else if (self->proxy && self->busy)
+        sso_auth_session_call_cancel_sync (self->proxy,
+                                           self->cancellable,
                                            NULL);
 
-    priv->busy = FALSE;
-    priv->canceled = FALSE;
+    self->busy = FALSE;
+    self->canceled = FALSE;
 }
 
 static void
 auth_session_check_remote_object(SignonAuthSession *self)
 {
-    g_return_if_fail (self != NULL);
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
 
-    if (priv->proxy != NULL)
+    if (self->proxy != NULL)
         return;
 
-    g_return_if_fail (priv->auth_service_proxy != NULL);
+    g_return_if_fail (SSO_IS_AUTH_SERVICE (self->auth_service_proxy));
 
-    if (!priv->registering)
+    if (!self->registering)
     {
-        priv->registering = TRUE;
+        self->registering = TRUE;
         sso_auth_service_call_get_auth_session_object_path (
-            priv->auth_service_proxy,
-            priv->id,
+            self->auth_service_proxy,
+            self->id,
             "*",
-            priv->method_name,
-            priv->cancellable,
+            self->method_name,
+            self->cancellable,
             auth_session_get_object_path_reply,
             self);
     }
