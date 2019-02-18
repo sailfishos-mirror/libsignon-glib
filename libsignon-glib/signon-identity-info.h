@@ -87,6 +87,8 @@ void signon_identity_info_add_access_control (SignonIdentityInfo *info,
 void signon_identity_info_set_identity_type (SignonIdentityInfo *info,
                                              SignonIdentityType type);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SignonIdentityInfo, signon_identity_info_free);
+
 G_END_DECLS
 
 #endif /* _SIGNON_IDENTITY_INFO_H_ */

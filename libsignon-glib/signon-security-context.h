@@ -50,6 +50,8 @@ const gchar *signon_security_context_get_system_context (const SignonSecurityCon
 void signon_security_context_set_application_context (SignonSecurityContext *ctx, const gchar *application_context);
 void signon_security_context_set_system_context (SignonSecurityContext *ctx, const gchar *system_context);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SignonSecurityContext, signon_security_context_free);
+
 G_END_DECLS
 
 #endif /* _SIGNON_SECURITY_CONTEXT_H_ */
