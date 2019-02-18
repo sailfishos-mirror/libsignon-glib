@@ -38,58 +38,50 @@
 #include <gio/gio.h>
 #include <glib.h>
 
-G_DEFINE_TYPE (SignonAuthService, signon_auth_service, G_TYPE_OBJECT);
+/**
+ * SignonAuthServiceClass:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 
-struct _SignonAuthServicePrivate
+/**
+ * SignonAuthService:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
+struct _SignonAuthService
 {
-    SsoAuthService *proxy;
+  GObject parent_instance;
+
+  SsoAuthService *proxy;
 };
+
+G_DEFINE_TYPE (SignonAuthService, signon_auth_service, G_TYPE_OBJECT);
 
 #define SIGNON_AUTH_SERVICE_PRIV(obj) (SIGNON_AUTH_SERVICE(obj)->priv)
 
 static void
 signon_auth_service_init (SignonAuthService *auth_service)
 {
-    SignonAuthServicePrivate *priv;
-
-    priv = G_TYPE_INSTANCE_GET_PRIVATE (auth_service, SIGNON_TYPE_AUTH_SERVICE,
-                                        SignonAuthServicePrivate);
-    auth_service->priv = priv;
-
     /* Create the proxy */
-    priv->proxy = sso_auth_service_get_instance ();
+    auth_service->proxy = sso_auth_service_get_instance ();
 }
 
 static void
 signon_auth_service_dispose (GObject *object)
 {
     SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (object);
-    SignonAuthServicePrivate *priv = auth_service->priv;
 
-    if (priv->proxy)
-    {
-        g_object_unref (priv->proxy);
-        priv->proxy = NULL;
-    }
+    g_clear_object (&auth_service->proxy);
 
     G_OBJECT_CLASS (signon_auth_service_parent_class)->dispose (object);
-}
-
-static void
-signon_auth_service_finalize (GObject *object)
-{
-    G_OBJECT_CLASS (signon_auth_service_parent_class)->finalize (object);
 }
 
 static void
 signon_auth_service_class_init (SignonAuthServiceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (object_class, sizeof (SignonAuthServicePrivate));
-
     object_class->dispose = signon_auth_service_dispose;
-    object_class->finalize = signon_auth_service_finalize;
 }
 
 static void
@@ -167,14 +159,12 @@ void signon_auth_service_get_methods (SignonAuthService *auth_service,
                                       GAsyncReadyCallback callback,
                                       gpointer user_data)
 {
-    SignonAuthServicePrivate *priv = NULL;
     GTask *task = NULL;
 
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
 
-    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
     task = g_task_new (auth_service, cancellable, callback, user_data);
-    sso_auth_service_call_query_methods (priv->proxy, cancellable, _signon_auth_service_finish_query_methods, task);
+    sso_auth_service_call_query_methods (auth_service->proxy, cancellable, _signon_auth_service_finish_query_methods, task);
 }
 
 /**
@@ -217,13 +207,11 @@ signon_auth_service_get_methods_sync (SignonAuthService *auth_service,
                                       GCancellable *cancellable,
                                       GError **error)
 {
-    SignonAuthServicePrivate *priv;
     gchar **methods_array = NULL;
 
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
-    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
-    sso_auth_service_call_query_methods_sync (priv->proxy, &methods_array, cancellable, error);
+    sso_auth_service_call_query_methods_sync (auth_service->proxy, &methods_array, cancellable, error);
 
     return methods_array;
 }
@@ -247,14 +235,12 @@ signon_auth_service_get_mechanisms (SignonAuthService *auth_service,
                                     GAsyncReadyCallback callback,
                                     gpointer user_data)
 {
-    SignonAuthServicePrivate *priv = NULL;
     GTask *task = NULL;
 
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
 
-    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
     task = g_task_new (auth_service, cancellable, callback, user_data);
-    sso_auth_service_call_query_mechanisms (priv->proxy, method, cancellable, _signon_auth_service_finish_query_mechanisms, task);
+    sso_auth_service_call_query_mechanisms (auth_service->proxy, method, cancellable, _signon_auth_service_finish_query_mechanisms, task);
 }
 
 /**
@@ -299,13 +285,11 @@ signon_auth_service_get_mechanisms_sync (SignonAuthService *auth_service,
                                          GCancellable *cancellable,
                                          GError **error)
 {
-    SignonAuthServicePrivate *priv;
     gchar **mechanisms_array = NULL;
 
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service), NULL);
 
-    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
-    sso_auth_service_call_query_mechanisms_sync (priv->proxy, method, &mechanisms_array, cancellable, error);
+    sso_auth_service_call_query_mechanisms_sync (auth_service->proxy, method, &mechanisms_array, cancellable, error);
 
     return mechanisms_array;
 }
