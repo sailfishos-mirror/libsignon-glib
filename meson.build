@@ -23,7 +23,9 @@ endif
 root_dir = include_directories ('.')
 
 subdir('libsignon-glib')
-subdir('docs')
+if get_option('documentation')
+    subdir('docs')
+endif
 
 if get_option('python')
     subdir('pygobject')
