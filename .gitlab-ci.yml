@@ -18,14 +18,15 @@ before_script:
   - export PKG_CONFIG_PATH=/usr/lib64/pkgconfig
   - apt-get update -yq && apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq $LIB_PKGS $GIT_PKGS
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq $COVERAGE_PKGS $DAEMON_PKGS $CI_TOOLS_PKGS
-  - cd ..
+  - mkdir -p /builds/accounts-sso
+  - cd /builds/accounts-sso
   - git clone https://gitlab.com/accounts-sso/signond.git
   - cd signond
-  - curl --header "PRIVATE-TOKEN:$PRIVATE_TOKEN" "https://gitlab.com/api/v4/projects/accounts-sso%2Fsignond/jobs/artifacts/master/download?job=build_amd64" -L -o artifacts.zip
+  - curl "https://gitlab.com/accounts-sso/signond/-/jobs/artifacts/master/download?job=build_amd64" -L -o artifacts.zip
   - unzip artifacts.zip
   - cd build
   - make install
-  - cd ../../libsignon-glib
+  - cd $CI_PROJECT_DIR
 
 build_amd64:
   stage: build
