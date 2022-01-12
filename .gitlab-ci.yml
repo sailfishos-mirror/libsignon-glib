@@ -22,7 +22,7 @@ before_script:
   - cd /builds/accounts-sso
   - git clone https://gitlab.com/accounts-sso/signond.git
   - cd signond
-  - curl "https://gitlab.com/accounts-sso/signond/-/jobs/artifacts/master/download?job=build_amd64" -L -o artifacts.zip
+  - curl "https://gitlab.com/api/v4/projects/222471/jobs/artifacts/master/download?job=build_amd64" -L -o artifacts.zip
   - unzip artifacts.zip
   - cd build
   - make install
